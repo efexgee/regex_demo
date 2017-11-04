@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Apply a series of greps to input from STDIN
+# to demonstrate regular expressions
+
 # echo the string with line breaks
 IFS=""
 
