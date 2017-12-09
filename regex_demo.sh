@@ -20,17 +20,27 @@ export GREP_COLORS='ms=04;31:mc=33:sl=:cx=:fn=01;37:ln=32:bn=35:se=36'
 number=0
 function regex () {
     ((number += 1))
-    echo "$number: grep ${@: 1:$(($# - 1))} /${!#}/"
-    #printf "%2d: grep %s /%s/\n" $number "${@: 1:$(($# - 1))}" ${!#}
-    tput setaf 2; echo $text | grep "$@|$"
-    #echo $text | grep -v $@
+
+    clear
+    echo $text | grep '$'
     echo
+    echo "$number: grep ${@: 1:$(($# - 1))} /`tput setaf 1`${!#}`tput sgr0`/"
+    #printf "%2d: grep %s /%s/\n" $number "${@: 1:$(($# - 1))}" ${!#}
+    prompt blank
+    echo $text | grep "$@|$"
+    #echo $text | grep -v $@
     prompt
 }
 
 function prompt() {
-    read -s -n 1 -p "Next (q to quit): " input
-    echo
+    if [[ $1 == "blank" ]]; then
+        read -s -n 1
+    else
+        echo
+        read -s -n 1 -p "Next (q to quit): " input
+        # one echo to cap the input
+        echo
+    fi
     echo
 
     if [[ $input = "q" ]]; then
@@ -45,14 +55,6 @@ else
 fi
 
 text=`cat $infile`
-
-clear
-
-# print original text
-echo "# original text"
-echo $text | grep '$'
-echo
-prompt
 
 # run the greps
 regex 'c'
