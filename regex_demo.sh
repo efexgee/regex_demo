@@ -5,36 +5,52 @@
 
 DEFAULT_INFILE="./regex_demo.txt"
 
-# echo the string with line breaks
-IFS=""
+# determine whether to use the default text file
+if (( $# == 0 )); then
+    infile=$DEFAULT_INFILE
+else
+    infile=$1
+fi
 
-# use the grep alias inside the functions
-shopt -s expand_aliases
+text=`cat $infile`
 
 # set default grep options
 # -n print line numbers
 # -E use extended regular expressions (egrep)
 alias grep='grep --color=always -n -E'
+# use the grep alias inside the functions
+shopt -s expand_aliases
 export GREP_COLORS='ms=04;31:mc=33:sl=:cx=:fn=01;37:ln=32:bn=35:se=36'
 
 number=0
-function regex () {
-    ((number += 1))
+function grep_it () {
+    ((number++))
 
     clear
-    echo $text | grep '$'
+    # match every line. using grep just to add the line numbers
+    echo "$text" | grep '$'
     echo
-    echo "$number: grep ${@: 1:$(($# - 1))} /`tput setaf 1`${!#}`tput sgr0`/"
-    #printf "%2d: grep %s /%s/\n" $number "${@: 1:$(($# - 1))}" ${!#}
+
+    # "-s" ignore lines without delimiters
+    local grep_args=`echo $1 | cut -s -d';' -f1`
+    # if we have args, pad them with a space
+    if [[ $grep_args != "" ]]; then
+        grep_args+=" "
+    fi
+    # without "-s" cut matches the whole line if there is no delimiter
+    local grep_regex=`echo $1 | cut -d';' -f2`
+
+    # print the header
+    echo "$number: grep $grep_args/`tput setaf 1`$grep_regex`tput sgr0`/"
     prompt blank
-    echo $text | grep "$@|$"
-    #echo $text | grep -v $@
+    # perform the grep
+    echo "$text" | grep $grep_args "($grep_regex|$)"
     prompt
 }
 
 function prompt() {
     if [[ $1 == "blank" ]]; then
-        read -s -n 1
+        read -s -n 1 input
     else
         echo
         read -s -n 1 -p "Next (q to quit): " input
@@ -47,43 +63,45 @@ function prompt() {
         exit 0
     fi
 }
-    
-if (( $# == 0 )); then
-    infile=$DEFAULT_INFILE
-else
-    infile=$1
-fi
 
-text=`cat $infile`
+ORIG_IFS=$IFS
+IFS=$'\n'   # need this dollar or some escapes get evaluated in the strings
+regexes=(`cat <<EOF
+c
+C
+p f
+-i;c
+-i;^c
+s
+ss
+.
+..
+..*
+(.)\1
+.$
+\.$
+i
+ i
+[A-Z]
+^[A-Z]
+ee
+ideas
+ide[ae]s
+[iI]de[ae]s
+^$
+^.$
+^.*$
+^.*\.$
+-i;ide[ae]s
+-i;([aeiou])\1
+-i;[aeiou][aeiou]+
+[aeiou]{2,}
+-v;[^aeiou ]{2,}
+EOF`
+)
+IFS=$ORIG_IFS
 
 # run the greps
-regex 'c'
-regex 'C'
-regex 'p f'
-regex -i 'c'
-regex -i '^c'
-regex 's'
-regex 'ss'
-regex '.'
-regex '..'
-regex '..*'
-regex '(.)\1'
-regex '.$'
-regex '\.$'
-regex 'i'
-regex ' i'
-regex '[A-Z]'
-regex '^[A-Z]'
-regex 'ee'
-regex 'ideas'
-regex 'ide[ae]s'
-regex '[iI]de[ae]s'
-regex '^$'
-regex '^.$'
-regex '^.*$'
-regex '^.*\.$'
-regex -i 'ide[ae]s'
-regex -i '([aeiou])\1'
-regex -i '[aeiou][aeiou]+'
-regex '[aeiou]{2,}'
-regex -v '[^aeiou ]{2,}'
+for regex in ${regexes[*]}; do
+    grep_it "$regex"
+done
