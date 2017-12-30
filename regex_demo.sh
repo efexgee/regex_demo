@@ -1,25 +1,51 @@
-#!/bin/bash -f
-# set -f or glob expansion on echo will hide things like ".*"
-
+#!/bin/bash
 # Apply a series of greps to a file of text
 # to demonstrate regular expressions
 
+# GLOBALS
+
+# disable *-expansion on echo so regexes are printed
+set -f
+
+# enable shell pattern matching
+#TODO for?
+shopt -s extglob
+
+# use the grep alias inside the functions
+shopt -s expand_aliases
+
+# set default grep options
+# -n print line numbers
+# -E use extended regular expressions (egrep)
+alias grep='grep --color=always -n -E'
+export GREP_COLORS='ms=04;31:mc=33:sl=:cx=:fn=01;37:ln=32:bn=35:se=36'
+
 # set our tab width
-TAB=8
-tabs -${TAB} > /dev/null
+TAB=8   # also used in tab-related functions
+tabs -${TAB}
+
+# set up the regular expressions
+ORIG_IFS=$IFS   # backup the input field separator
+IFS=$'\n'   # need this dollar or some escapes get evaluated in the strings
+
+# default file to use as the input text if no filename is provided
+DEFAULT_INFILE="./regex_demo.txt"
+
+# define some colors
+NORM=`tput sgr0`
+RED=`tput setaf 1`
+GREEN=`tput setaf 2`
+YELLOW=`tput setaf 3`
+BLUE=`tput setaf 4`
+
+# width added to the pretty regex strings by the colors
+COLOR_PADDING=$(( ${#YELLOW}+${#NORM}+${#RED}+${#NORM} ))
 
 # check whether we have a 'seq' command
 if ! which seq > /dev/null; then
     echo "Requires the seq command."
     exit 10
 fi
-
-# enable shell pattern matching
-#TODO for?
-shopt -s extglob
-
-# default file to use as the input text if no filename is provided
-DEFAULT_INFILE="./regex_demo.txt"
 
 # determine whether to use the default text file
 if (( $# == 0 )); then
@@ -28,21 +54,11 @@ else
     infile=$1
 fi
 
-# grab the contents
+# grab the contents of the input file
 text=`cat $infile`
 
-# set default grep options
-# -n print line numbers
-# -E use extended regular expressions (egrep)
-alias grep='grep --color=always -n -E'
-# use the grep alias inside the functions
-shopt -s expand_aliases
-export GREP_COLORS='ms=04;31:mc=33:sl=:cx=:fn=01;37:ln=32:bn=35:se=36'
-
-# set up the regular expressions
-ORIG_IFS=$IFS
-IFS=$'\n'   # need this dollar or some escapes get evaluated in the strings
-regexes=(`cat <<EOF | sort -R | head -999
+# define the regular expressions
+regexes=(`cat <<EOF #DEBUG | sort -R | head -999
 c
 C
 p f
@@ -75,16 +91,6 @@ ide[ae]s
 -v;[^aeiou ]{2,}
 EOF`
 )
-
-# define some colors
-NORM=`tput sgr0`
-RED=`tput setaf 1`
-GREEN=`tput setaf 2`
-YELLOW=`tput setaf 3`
-BLUE=`tput setaf 4`
-
-# width added to the pretty regex strings by the colors
-COLOR_PADDING=$(( ${#YELLOW}+${#NORM}+${#RED}+${#NORM} ))
 
 function rnd_up_to_multiple () {
     # round up to the nearest multiple of N
@@ -147,8 +153,6 @@ function set_term_width () {
     # calculate printed width (what we see)
     local printed_width=$1
 
-    echo "printed_width=$printed_width" >&2
-
     (( printed_width+=1 ))    # space after ')'
     (( printed_width+=1 ))    # ')' after number
     (( printed_width+=2 ))    # two digits (assuming < 100 items)
@@ -159,48 +163,39 @@ function set_term_width () {
     # account for color control codes
     (( actual_width+=$COLOR_PADDING ))
     
-    #printed_width=$(add_a_tab $printed_width $TAB)
-    #actual_width=$(add_a_tab $actual_width $SELECT_TAB)
-    # "round" to the next tab stop
-    #printed_width=$(rnd_up_to_multiple $printed_width $TAB)
-    #actual_width=$(rnd_up_to_multiple $actual_width $SELECT_TAB)
-
-
     # calculate how many columns we want
     local screen_width=$(tput cols)
-
     local want_cols=$(fit_columns $printed_width $TAB $screen_width)
 
+    # calculate what we have to set COLUMNS to
     local need_width=0
     for ((i = 1; i <= $want_cols; i++)); do
         (( need_width+=$actual_width ))
         need_width=$(add_a_tab $need_width $SELECT_TAB)
     done
         
-    echo "screen_width=$screen_width. printed_width=$printed_width. want_cols=$want_cols" >&2
-    echo "actual_width=$actual_width. need_width=$need_width" >&2
-    echo "first string should end at $printed_width and second should start at $(( $(add_a_tab $printed_width $TAB) + 1))" >&2
+    #DEBUG echo "screen_width=$screen_width. printed_width=$printed_width. want_cols=$want_cols" >&2
+    #DEBUG echo "actual_width=$actual_width. need_width=$need_width" >&2
+    #DEBUG echo "first string should end at $printed_width and second should start at $(( $(add_a_tab $printed_width $TAB) + 1))" >&2
     echo $need_width
 }
 
-# build pretty version of regex list
-#   removes the ";" and adds color
-#echo "${regexes[*]}"
-#read
  
-# find the widest string to determine string padding
-input_width=$(echo "${regexes[*]}" | wc -L)
-regex_width=$((input_width + 2)) # add 2 for the slashes around the regex
-padded_width=$((regex_width + COLOR_PADDING)) # for color codes
+# determine some widths
+input_width=$(echo "${regexes[*]}" | wc -L) # the widest regex line
+regex_width=$((input_width + 2)) # regex with added slashes
+padded_width=$((regex_width + COLOR_PADDING)) # with slashes and colors
 
+# build pretty version of regex list
+# this will be printed by 'select'
 for ((i = 0; i < ${#regexes[*]}; i++)); do
-    grep_line=${regexes[$i]}
+    regex_line=${regexes[$i]}
 
-    # build grep args string (need colors codes for padding)
+    # build grep args string
     grep_args=""
     grep_args+="$YELLOW"
-    if echo $grep_line | grep -q ';'; then
-        grep_args+="$(echo $grep_line | cut -d';' -f1)"
+    if echo $regex_line | grep -q ';'; then
+        grep_args+="$(echo $regex_line | cut -d';' -f1)"
         grep_args+=" "
     fi
     grep_args+="$NORM"
@@ -208,90 +203,74 @@ for ((i = 0; i < ${#regexes[*]}; i++)); do
     # build grep regex string
     grep_regex="/"
     grep_regex+="$RED"
-    grep_regex+="$(echo $grep_line | cut -d';' -f2)"
+    grep_regex+="$(echo $regex_line | cut -d';' -f2)"
     grep_regex+="$NORM"
     grep_regex+="/"
 
-    # apply padding to make "select" menu align correctly
-    # because of the color codes
-    #padded_width=0
-    pretty_regexes[$i]=$(printf "%*s" $padded_width "${grep_args}${grep_regex}")
-
-    #pretty_regexes[$i]=`echo "${pretty_regexes[$i]}"| col`
-    #echo ${#pretty_regexes[$i]} ${pretty_regexes[$i]}
-    #echo ${pretty_regexes[$i]} | wc -L
+    # pad all entries to the same width or 'select' will
+    # not be able to align them due to the non-printing
+    # color codes
+    pretty_regexes[$i]=$(printf "%-*s" $padded_width "${grep_args}${grep_regex}")
 done
 
-pretty_regexes[11]=`printf "${YELLOW}${NORM}${RED}${NORM}%.*s" $((padded_width - $COLOR_PADDING)) '-------------------------------------------'`
-echo "max_pretty_wc: `echo "${pretty_regexes[*]}" | wc -L`"
-echo
-i=21
-echo "${#regexes[$i]}|${regexes[$i]}|"
-echo "${#pretty_regexes[$i]}|${pretty_regexes[$i]}|"
-printf -- "--|%${padded_width}s\n" "|"
-i=27
-echo "${#regexes[$i]}|${regexes[$i]}|"
-echo "${#pretty_regexes[$i]}|${pretty_regexes[$i]}|"
-printf -- "--|%${padded_width}s\n" "|"
-i=4
-echo "${#regexes[$i]}|${regexes[$i]}|"
-echo "${#pretty_regexes[$i]}|${pretty_regexes[$i]}|"
-
-read
+#DEBUG pretty_regexes[11]=`printf "${YELLOW}${NORM}${RED}${NORM}%.*s" $((padded_width - $COLOR_PADDING)) '-------------------------------------------'`
 
 function hi () {
-    #local output+=`tput smul`
+    # highlight the shortcut key on a menu option
+    # used inline: echo "press `hi d`one"
     local output+="("
     local output+=$BLUE
     local output+=$1
     local output+=$NORM
     local output+=")"
-    #local output+=`tput rmul`
 
     echo -n $output
 }
 
-# set up menu prompt text
-#PS3=$'\n'"Choose regex `hi c`ontinue `hi q`uit: "
-#PS3=$'\n'$'..) ----+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8----+----9\n'"Choose regex `hi c`ontinue `hi q`uit: "
-PS3=$'\n'`tabs -d8`"Choose regex `hi c`ontinue `hi q`uit: "
+# 'select' uses PS3 as its prompt
+# Note: function hi() has to be defined
+PS3=$'\n'"Choose regex `hi c`ontinue `hi q`uit: "
 
 function grep_it () {
+    # apply a regex and grep flag to the text
     local label=$1
     local grep_line=$2
 
     clear
-    # match every line. using grep just to add the line numbers
+    # just using grep to add the line numbers for consistent
+    # appearance
     echo "$text" | grep '$'
     echo
 
-    # "-s" ignore lines without delimiters
+    # '-s' makes 'cut' skip the line if there is no delimeter
     local grep_args=`echo $grep_line | cut -s -d';' -f1`
     # if we have args, pad them with a space
-    local grep_spacer
     if [[ $grep_args != "" ]]; then
         local grep_spacer=" "
     fi
-    # without "-s" cut matches the whole line if there is no delimiter
+    # 'cut' matches the whole line if there is no delimiter
     local grep_regex=`echo $grep_line | cut -d';' -f2`
 
-    # print the header
-    echo "$label: grep ${YELLOW}${grep_args}${NORM}${grep_spacer}/`tput setaf 1`$grep_regex`tput sgr0`/"
+    # print the regex that is about to be applied
+    echo "$label: grep ${YELLOW}${grep_args}${NORM}${grep_spacer}/${RED}$grep_regex${NORM}/"
     echo
 
-    # wait for user
-    tput civis
-    read -s -n 1 -p "Show result " input
+    # wait for user with a prompt
+    tput civis  # hide the cursor
+    read -s -n 1 -p "Apply regex " input
+    # delete the prompt before printing the results
     tput dl1
     tput hpa 0
-    tput cnorm
+    tput cnorm  # show the cursor
 
+    # check for a request to quit (though not offered)
     if [[ $input == "q" ]]; then
         quitting
     fi
 
     # print the grep output
-    # do not put "()" around the "|" or the back references break
+    # the "regex|$" must not be inside "()" or regexes with back
+    # references will break
     echo "$text" | grep $grep_args "$grep_regex|$"
     prompt
 }
@@ -306,9 +285,12 @@ function quitting() {
 function prompt() {
     echo
     
+    tput civis
     read -s -n 1 -p "`hi b`ack `hi j`ump `hi i`nteractive `hi m`enu `hi q`uit | Next " input
-    # one echo to cap the input
+    # since the input requires no <enter> we print
+    # a newline to keep things pretty
     echo
+    tput cnorm
 
     case $input in
         "q") quitting ;;
@@ -321,14 +303,17 @@ function prompt() {
 }
 
 function interactive () {
+    # allow input of a custom regex to run on the text
     echo "Apply a custom regular expression"
-    read -r -p "regular expression: $RED" regex
+    read -r -p "grep: $RED" regex
     echo -n $NORM
     read -r -p "grep options: $YELLOW" opts
     echo -n $NORM
 
+    # we need to give grep_it() a label
     local label="*"
     
+    # run it on the text
     grep_it "$label" "${opts};${regex}"
 }
 
@@ -338,20 +323,26 @@ function menu () {
 }
 
 function regex_menu () {
+    # draw the menu of regexes to choose from
     clear
+    # set the terminal width so 'select' can align
+    # colored text
     COLUMNS=$(set_term_width $regex_width)
-    echo "c: $COLUMNS"
 
     select choice in ${pretty_regexes[*]}; do
         case $REPLY in
+                #TODO it would be nice to catch <return> here
             "c") break ;;
+                # don't jump to a different regex
             "q") quitting ;;
-            #[0-9]*) tabs -d$REPLY ;;
+                # quit
             @($choices))
+                # if it's one of the numbers
+                # change the current regex ID
                 regex_id=$((REPLY -2))
                 break ;;
-            [0-9]*) COLUMNS=$REPLY; echo "Set COLUMNS=$REPLY" ;;
             "debug")
+                # undocumented debug output option
                 tabs -d8
                 echo "input_width=$input_width"
                 echo "regex_width=$regex_width"
@@ -360,6 +351,7 @@ function regex_menu () {
                 echo "COLUMNS=$COLUMNS"
                 ;;
             *) echo "Not a valid choice: $REPLY" ;;
+                # anything else is invalid
         esac 
     done
 }
