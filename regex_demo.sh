@@ -3,6 +3,8 @@
 # to demonstrate regular expressions
 
 # GLOBALS
+# trap ctrl-c so we can fix any custom settings
+trap quitting SIGINT
 
 # disable *-expansion on echo so regexes are printed
 set -f
@@ -21,7 +23,7 @@ alias grep='grep --color=always -n -E'
 export GREP_COLORS='ms=04;31:mc=33:sl=:cx=:fn=01;37:ln=32:bn=35:se=36'
 
 # set our tab width
-TAB=8   # also used in tab-related functions
+TAB=1   # also used in tab-related functions
 tabs -${TAB}
 
 # set up the regular expressions
@@ -33,6 +35,7 @@ DEFAULT_INFILE="./regex_demo.txt"
 
 # define some colors
 NORM=`tput sgr0`
+BLACK=`tput setaf 0`
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
 YELLOW=`tput setaf 3`
@@ -162,7 +165,7 @@ function set_term_width () {
 
     # account for color control codes
     (( actual_width+=$COLOR_PADDING ))
-    
+
     # calculate how many columns we want
     local screen_width=$(tput cols)
     local want_cols=$(fit_columns $printed_width $TAB $screen_width)
@@ -173,17 +176,17 @@ function set_term_width () {
         (( need_width+=$actual_width ))
         need_width=$(add_a_tab $need_width $SELECT_TAB)
     done
-        
+
     #DEBUG echo "screen_width=$screen_width. printed_width=$printed_width. want_cols=$want_cols" >&2
     #DEBUG echo "actual_width=$actual_width. need_width=$need_width" >&2
     #DEBUG echo "first string should end at $printed_width and second should start at $(( $(add_a_tab $printed_width $TAB) + 1))" >&2
     echo $need_width
 }
 
- 
+
 # determine some widths
 input_width=$(echo "${regexes[*]}" | wc -L) # the widest regex line
-regex_width=$((input_width + 2)) # regex with added slashes
+regex_width=$((input_width + 2)) # regex with added slashes # restore default font
 padded_width=$((regex_width + COLOR_PADDING)) # with slashes and colors
 
 # build pretty version of regex list
@@ -257,7 +260,7 @@ function grep_it () {
 
     # wait for user with a prompt
     tput civis  # hide the cursor
-    read -s -n 1 -p "Apply regex " input
+    read -s -n 1 -p "${BLACK}Show regex applied${NORM} " input
     # delete the prompt before printing the results
     tput dl1
     tput hpa 0
@@ -276,15 +279,19 @@ function grep_it () {
 }
 
 function quitting() {
-    # quits with status 0 because it was intentional
-    echo
+    # also executes on ctrl-c
+    # quits with status 0 because it was user-initiated
+    echo $NORM  # restore default font
     echo "Quitting."
+    tabs -8     # restore default tab width
+    IFS=$oIFS   # restore IFS
+    tput cnorm  # restore cursor
     exit 0
 }
 
 function prompt() {
     echo
-    
+
     tput civis
     read -s -n 1 -p "`hi b`ack `hi j`ump `hi i`nteractive `hi m`enu `hi q`uit | Next " input
     # since the input requires no <enter> we print
@@ -302,17 +309,77 @@ function prompt() {
     esac
 }
 
+function input_regex () {
+    exec 3>&1 1>&2  # "save" STDOUT to FD3, redirect to STDERR
+
+    local oIFS=$IFS
+    local BACKSPACE=`tput kbs`
+
+    # get flags for the grep command
+    local grep_args=''
+    read -p "Enter grep arguments: $YELLOW" grep_args
+    echo -n $NORM
+    if [[ -n $grep_args ]]; then
+        # add a spacer between the flag and the /regex/
+        grep_spacer=" "
+    fi
+
+    echo
+
+    # get the regex
+    tput civis  # hide the cursor
+    IFS=''  # disable the input field separator
+
+    # use 'read' in a loop to fake interactive editor behavior
+    local input
+    local regex
+    while true; do
+        # the prompt is updating in the loop
+        # technically, the user is typing to the right
+        # of the prompt but since the cursor is invisible
+        # it looks like we're editing the prompt area
+        #TODO use '-s' on read, but breaks terminal if ctrl-c'd
+        read -rn 1 -p "Enter regex: grep ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${regex}${NORM}/" input
+
+        case $input in
+            "")
+                # enter was probably pressed
+                # accept the regex
+                #DEBUG echo; echo "regex is |$grep_args;$regex|"
+                break ;;
+            $BACKSPACE)
+                # handle backspace
+                regex=${regex%?} ;;
+            # anything else is added to the regex
+            # matching printable characters doesn't save us from arrow keys
+            [[:print:]]) regex+="$input" ;;
+        esac
+
+        #echo -n ' (o)'
+        #sleep 0.1
+
+        # overwrite the prompt
+        tput dl1    # delete the current line
+        tput hpa 0  # move cursor to the beginning of line
+    done
+
+    IFS=$oIFS   # restore IFS
+    tput cnorm  # un-hide cursor
+
+    exec 1>&3   # restore STDOUT
+
+    echo $regex
+}
+
 function interactive () {
     # allow input of a custom regex to run on the text
-    echo "Apply a custom regular expression"
-    read -r -p "grep: $RED" regex
-    echo -n $NORM
-    read -r -p "grep options: $YELLOW" opts
-    echo -n $NORM
+    echo
+    # get the regex via pretty interface
+    regex=$(input_regex)
 
     # we need to give grep_it() a label
     local label="*"
-    
+
     # run it on the text
     grep_it "$label" "${opts};${regex}"
 }
@@ -352,7 +419,7 @@ function regex_menu () {
                 ;;
             *) echo "Not a valid choice: $REPLY" ;;
                 # anything else is invalid
-        esac 
+        esac
     done
 }
 

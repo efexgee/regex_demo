@@ -37,10 +37,10 @@ function input_regex () {
     while true; do
         # the prompt is updating in the loop
         # technically, the user is typing to the right
-        # of the prompt but since the input is not echo'd
-        # and the cursor is invisible, it looks like we're
-        # editing the prompt area
-        read -srn 1 -p "grep ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${regex}${NORM}/" input
+        # of the prompt but since the cursor is invisible
+        # it looks like we're editing the prompt area
+        #TODO use '-s' on read, but breaks terminal if ctrl-c'd
+        read -rn 1 -p "grep ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${regex}${NORM}/" input
 
         case $input in
             "")
