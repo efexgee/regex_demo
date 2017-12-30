@@ -44,8 +44,10 @@ tabs -${TAB}
 oIFS=$IFS   # backup the input field separator
 IFS=$'\n'   # need this dollar or some escapes get evaluated in the strings
 
+DEMO_FILE_SUFFIX=".regex_demo.json"
+
 # default file to use as the input text if no filename is provided
-DEFAULT_INFILE="./original.regex_demo.json"
+DEFAULT_INFILE="./original${DEMO_FILE_SUFFIX}"
 
 # define some colors
 NORM=`tput sgr0`
@@ -71,14 +73,24 @@ else
     infile=$1
 fi
 
-# read from JSON files
-title=$(jq '.title' $infile)
-description=$(jq '.description' $infile)
-text=$(jq '.text[]' $infile)
-IFS=','
-regexes=( $(jq '.regexes | @csv' $infile | tr -d '"') )
+function load_demo () {
+    # load text and regexes from a json file
+    local infile=$1
 
-IFS=$'\n' #TODO do we still need this?
+    echo "Loading from $infile..."
+
+    title=$(jq '.title' $infile)
+    description=$(jq '.description' $infile)
+    text=$(jq '.text[]' $infile)
+
+    local IFS=','
+    regexes=( $(jq '.regexes | @csv' $infile | tr -d '"') )
+
+    #TODO build_pretty_menu_entries
+    #TODO build_valid_choices
+}
+
+load_demo $infile
 
 function rnd_up_to_multiple () {
     # round up to the nearest multiple of N
@@ -168,6 +180,8 @@ function set_term_width () {
     echo $need_width
 }
 
+# build a pattern to match menu replies
+choices=`seq -s '|' 1 ${#regexes[*]}`
 
 # determine some widths
 input_width=$(echo "${regexes[*]}" | wc -L) # the widest regex line
@@ -359,8 +373,45 @@ function interactive () {
 }
 
 function menu () {
-    echo "read diff input file"
-    read -p "not implemented"
+    clear
+    echo "Load a demo file"
+    echo
+
+    local i=0
+    local demo_file
+    local demo_files
+    local demos
+    local demo_title
+    local demo_descr
+
+    local PS3=$'\n'"Choose demo `hi c`ontinue `hi q`uit: "
+
+    set +f
+
+    for demo_file in $(\ls *${DEMO_FILE_SUFFIX}); do
+        (( i++ ))
+        demo_files[$i]=$demo_file
+
+        demo_title=$(jq '.title' $demo_file)
+        demo_descr=$(jq '.description' $demo_file)
+        demos[$i]="$demo_title: $demo_descr"
+    done
+
+    local choices=`seq -s '|' 1 ${#demos[*]}`
+
+    select choice in ${demos[*]}; do
+        case $REPLY in
+            "c") break ;;
+            "q") quitting ;;
+            @($choices))
+                load_demo ${demo_files[$REPLY]}
+                break
+                ;;
+            *) echo "Not a valid choice: $REPLY"
+        esac
+    done
+
+    set -f
 }
 
 function regex_menu () {

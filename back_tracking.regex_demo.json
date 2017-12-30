@@ -1,0 +1,28 @@
+{
+    "title": "back-tracking",
+    "description": "optimizing against back-tracking",
+    "comment": "This field is not going to get printed",
+    "text": [
+        "Catless green ideas sleep furiously.",
+        "catless green ideas sleep furiously.",
+        "Catless green ideas sleep furiously",
+        "Catless green idees sleep furiously.",
+        "Cat less green ideas sleep furiously.",
+        "Catless green ideas sleep furious.",
+        "Catless green Ideas sleep furiously.",
+        "Catless green ideas sleep ferociously.",
+        "Catless green ideas rest ferociously."
+    ],
+    "regexes": [
+        "c",
+        "C",
+        "p f",
+        "-i;c",
+        "-i;^c",
+        "back.*tracking",
+        "-i;([aeiou])\\1",
+        "-i;[aeiou][aeiou]+",
+        "[aeiou]{2,}",
+        "-v;[^aeiou ]{2,}"
+    ]
+}

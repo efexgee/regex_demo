@@ -1,0 +1,22 @@
+{
+    "title": "pitfalls",
+    "description": "common problems for beginner regex jockeys",
+    "comment": "This field is not going to get printed",
+    "text": [
+        "Colorless ideas sleep dangerously.",
+        "colorless ideas sleep dangerously.",
+        "Colorless ideas sleep dangerously",
+        "Colorless idees sleep dangerously.",
+        "Color less ideas sleep dangerously.",
+        "Colorless ideas sleep dangerous.",
+        "Colorless Ideas sleep dangerously.",
+        "Colorless ideas sleep ferociously.",
+        "Colorless ideas rest ferociously."
+    ],
+    "regexes": [
+        "^$",
+        "^.$",
+        "^.*$",
+        "^.*\\.$"
+    ]
+}
