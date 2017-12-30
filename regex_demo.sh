@@ -3,6 +3,18 @@
 # to demonstrate regular expressions
 
 # GLOBALS
+
+function quitting() {
+    # also executes on ctrl-c
+    # quits with status 0 because it was user-initiated
+    echo $NORM  # restore default font
+    echo "Quitting."
+    tabs -8     # restore default tab width
+    IFS=$oIFS   # restore IFS
+    tput cnorm  # restore cursor
+    exit 0
+}
+
 # trap ctrl-c so we can fix any custom settings
 trap quitting SIGINT
 
@@ -22,16 +34,18 @@ shopt -s expand_aliases
 alias grep='grep --color=always -n -E'
 export GREP_COLORS='ms=04;31:mc=33:sl=:cx=:fn=01;37:ln=32:bn=35:se=36'
 
+alias jq='jq -r'
+
 # set our tab width
 TAB=1   # also used in tab-related functions
 tabs -${TAB}
 
 # set up the regular expressions
-ORIG_IFS=$IFS   # backup the input field separator
+oIFS=$IFS   # backup the input field separator
 IFS=$'\n'   # need this dollar or some escapes get evaluated in the strings
 
 # default file to use as the input text if no filename is provided
-DEFAULT_INFILE="./regex_demo.txt"
+DEFAULT_INFILE="./original.regex_demo.json"
 
 # define some colors
 NORM=`tput sgr0`
@@ -57,43 +71,14 @@ else
     infile=$1
 fi
 
-# grab the contents of the input file
-text=`cat $infile`
+# read from JSON files
+title=$(jq '.title' $infile)
+description=$(jq '.description' $infile)
+text=$(jq '.text[]' $infile)
+IFS=','
+regexes=( $(jq '.regexes | @csv' $infile | tr -d '"') )
 
-# define the regular expressions
-regexes=(`cat <<EOF #DEBUG | sort -R | head -999
-c
-C
-p f
--i;c
--i;^c
-s
-ss
-.
-..
-..*
-(.)\1
-.$
-\.$
-i
- i
-[A-Z]
-^[A-Z]
-ee
-ideas
-ide[ae]s
-[iI]de[ae]s
-^$
-^.$
-^.*$
-^.*\.$
--i;ide[ae]s
--i;([aeiou])\1
--i;[aeiou][aeiou]+
-[aeiou]{2,}
--v;[^aeiou ]{2,}
-EOF`
-)
+IFS=$'\n' #TODO do we still need this?
 
 function rnd_up_to_multiple () {
     # round up to the nearest multiple of N
@@ -276,17 +261,6 @@ function grep_it () {
     # references will break
     echo "$text" | grep $grep_args "$grep_regex|$"
     prompt
-}
-
-function quitting() {
-    # also executes on ctrl-c
-    # quits with status 0 because it was user-initiated
-    echo $NORM  # restore default font
-    echo "Quitting."
-    tabs -8     # restore default tab width
-    IFS=$oIFS   # restore IFS
-    tput cnorm  # restore cursor
-    exit 0
 }
 
 function prompt() {
