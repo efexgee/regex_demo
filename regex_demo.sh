@@ -22,7 +22,8 @@ trap quitting SIGINT
 set -f
 
 # enable shell pattern matching
-#TODO for?
+#TODO I believe this is for matching the $choices string
+# in the case statements
 shopt -s extglob
 
 # use the grep alias inside the functions
@@ -73,21 +74,71 @@ else
     infile=$1
 fi
 
+function prep_pretty () {
+    # build pretty version of regex list
+    # this will be printed by 'select'
+
+    # reset array because we're assigning directly
+    # to indexes
+    unset pretty_regexes
+
+    for ((i = 0; i < ${#regexes[*]}; i++)); do
+        local regex_line=${regexes[$i]}
+
+        # build grep args string
+        local grep_args=""
+        grep_args+="$YELLOW"
+        if echo $regex_line | grep -q ';'; then
+            grep_args+="$(echo $regex_line | cut -d';' -f1)"
+            grep_args+=" "
+        fi
+        grep_args+="$NORM"
+
+        # build grep regex string
+        local grep_regex="/"
+        grep_regex+="$RED"
+        grep_regex+="$(echo $regex_line | cut -d';' -f2)"
+        grep_regex+="$NORM"
+        grep_regex+="/"
+
+        # pad all entries to the same width or 'select' will
+        # not be able to align them due to the non-printing
+        # color codes
+        pretty_regexes[$i]=$(printf "%-*s" $padded_width "${grep_args}${grep_regex}")
+    done
+
+    #DEBUG pretty_regexes[11]=`printf "${YELLOW}${NORM}${RED}${NORM}%.*s" $((padded_width - $COLOR_PADDING)) '-------------------------------------------'`
+}
+
 function load_demo () {
     # load text and regexes from a json file
+    #TODO this will break on tab characters
     local infile=$1
 
-    echo "Loading from $infile..."
+    # reset to first regex in the list
+    #TODO reset to -1 because -1 + 2 = 1 ... :(
+    regex_id=-1
 
     title=$(jq '.title' $infile)
     description=$(jq '.description' $infile)
     text=$(jq '.text[]' $infile)
 
-    local IFS=','
-    regexes=( $(jq '.regexes | @csv' $infile | tr -d '"') )
+    oIFS=$IFS
+    local IFS=$'\t'
+    regexes=( $(jq '.regexes | @tsv' $infile | tr -d '"') )
 
-    #TODO build_pretty_menu_entries
-    #TODO build_valid_choices
+    # reset IFS so the 'wc -L' will work below
+    IFS=$oIFS
+
+    # build a pattern to match menu replies
+    choices=`seq -s '|' 1 ${#regexes[*]}`
+
+    # determine some widths
+    input_width=$(echo "${regexes[*]}" | wc -L) # the widest regex line
+    regex_width=$((input_width + 2)) # regex with added slashes # restore default font
+    padded_width=$((regex_width + COLOR_PADDING)) # with slashes and colors
+
+    prep_pretty
 }
 
 load_demo $infile
@@ -180,46 +231,10 @@ function set_term_width () {
     echo $need_width
 }
 
-# build a pattern to match menu replies
-choices=`seq -s '|' 1 ${#regexes[*]}`
-
-# determine some widths
-input_width=$(echo "${regexes[*]}" | wc -L) # the widest regex line
-regex_width=$((input_width + 2)) # regex with added slashes # restore default font
-padded_width=$((regex_width + COLOR_PADDING)) # with slashes and colors
-
-# build pretty version of regex list
-# this will be printed by 'select'
-for ((i = 0; i < ${#regexes[*]}; i++)); do
-    regex_line=${regexes[$i]}
-
-    # build grep args string
-    grep_args=""
-    grep_args+="$YELLOW"
-    if echo $regex_line | grep -q ';'; then
-        grep_args+="$(echo $regex_line | cut -d';' -f1)"
-        grep_args+=" "
-    fi
-    grep_args+="$NORM"
-
-    # build grep regex string
-    grep_regex="/"
-    grep_regex+="$RED"
-    grep_regex+="$(echo $regex_line | cut -d';' -f2)"
-    grep_regex+="$NORM"
-    grep_regex+="/"
-
-    # pad all entries to the same width or 'select' will
-    # not be able to align them due to the non-printing
-    # color codes
-    pretty_regexes[$i]=$(printf "%-*s" $padded_width "${grep_args}${grep_regex}")
-done
-
-#DEBUG pretty_regexes[11]=`printf "${YELLOW}${NORM}${RED}${NORM}%.*s" $((padded_width - $COLOR_PADDING)) '-------------------------------------------'`
-
 function hi () {
     # highlight the shortcut key on a menu option
     # used inline: echo "press `hi d`one"
+    #TODO accept whole word and highlight first letter?
     local output+="("
     local output+=$BLUE
     local output+=$1
@@ -228,10 +243,6 @@ function hi () {
 
     echo -n $output
 }
-
-# 'select' uses PS3 as its prompt
-# Note: function hi() has to be defined
-PS3=$'\n'"Choose regex `hi c`ontinue `hi q`uit: "
 
 function grep_it () {
     # apply a regex and grep flag to the text
@@ -259,7 +270,7 @@ function grep_it () {
 
     # wait for user with a prompt
     tput civis  # hide the cursor
-    read -s -n 1 -p "${BLACK}Show regex applied${NORM} " input
+    read -s -n 1 -p "${BLACK}Hit <enter> to see the regex applied${NORM} " input
     # delete the prompt before printing the results
     tput dl1
     tput hpa 0
@@ -280,19 +291,20 @@ function grep_it () {
 function prompt() {
     echo
 
-    tput civis
-    read -s -n 1 -p "`hi b`ack `hi j`ump `hi i`nteractive `hi m`enu `hi q`uit | Next " input
+    tput civis  # hide cursor
+    read -s -n 1 -p "`hi b`ack `hi j`ump `hi i`nteractive `hi l`oad file `hi q`uit | Next " input
     # since the input requires no <enter> we print
     # a newline to keep things pretty
     echo
-    tput cnorm
+    tput cnorm  # restore cursor
 
     case $input in
         "q") quitting ;;
         "j") regex_menu ;;
         "i") interactive ;;
+        # to go back 1 we need to subtract 2
         "b") regex_id=$((regex_id - 2)) ;;
-        "m") menu ;;
+        "l") demo_menu ;;
         *) ;;
     esac
 }
@@ -372,9 +384,9 @@ function interactive () {
     grep_it "$label" "${opts};${regex}"
 }
 
-function menu () {
+function demo_menu () {
     clear
-    echo "Load a demo file"
+    echo "Load a regex_demo file"
     echo
 
     local i=0
@@ -384,8 +396,9 @@ function menu () {
     local demo_title
     local demo_descr
 
-    local PS3=$'\n'"Choose demo `hi c`ontinue `hi q`uit: "
+    local PS3=$'\n'"Choose a regex demo `hi c`ontinue `hi q`uit: "
 
+    #TODO what does this get set for?
     set +f
 
     for demo_file in $(\ls *${DEMO_FILE_SUFFIX}); do
@@ -394,7 +407,7 @@ function menu () {
 
         demo_title=$(jq '.title' $demo_file)
         demo_descr=$(jq '.description' $demo_file)
-        demos[$i]="$demo_title: $demo_descr"
+        demos[$i]="${BLUE}$demo_title${NORM}: $demo_descr"
     done
 
     local choices=`seq -s '|' 1 ${#demos[*]}`
@@ -411,6 +424,7 @@ function menu () {
         esac
     done
 
+    #TODO ditto
     set -f
 }
 
@@ -420,6 +434,9 @@ function regex_menu () {
     # set the terminal width so 'select' can align
     # colored text
     COLUMNS=$(set_term_width $regex_width)
+
+    # 'select' uses PS3 as its prompt
+    local PS3=$'\n'"Choose regex `hi c`ontinue `hi q`uit: "
 
     select choice in ${pretty_regexes[*]}; do
         case $REPLY in
@@ -435,7 +452,7 @@ function regex_menu () {
                 break ;;
             "debug")
                 # undocumented debug output option
-                tabs -d8
+                tabs -d${TAB}
                 echo "input_width=$input_width"
                 echo "regex_width=$regex_width"
                 echo "padded_width=$padded_width"
@@ -446,9 +463,26 @@ function regex_menu () {
                 # anything else is invalid
         esac
     done
+
+    # reset screen width
+    COLUMNS=$(tput cols)
 }
 
 # technically, this is the actual script
-for ((regex_id = 0; regex_id < ${#regexes[*]}; regex_id++)); do
-    grep_it $((regex_id + 1)) "${regexes[$regex_id]}"
+while true; do
+    for ((regex_id = 0; regex_id < ${#regexes[*]}; regex_id++)); do
+        grep_it $((regex_id + 1)) "${regexes[$regex_id]}"
+    done
+
+    while true; do
+        read -n 1 -p "At the end. Quit? (y/n) " response
+
+        case $response in
+            "y") quitting ;;
+            # "no" breaks out of the "y/n" 'while' loop
+            # then the 'for' loop starts over
+            "n") break ;;
+            *) echo "Please answer (y/n)" ;;
+        esac
+    done
 done
