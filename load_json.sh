@@ -19,13 +19,16 @@ text=$(jq '.text[]' $INFILE)
 echo "$text"
 echo
 
-IFS=','
-regexes=( $(jq '.regexes | @csv' $INFILE | tr -d '"') )
+IFS=$'\t'
+regexes=( $(jq '.regexes | @tsv' $INFILE) )
 
-echo ${regexes[*]}
-echo
-echo "|${regexes[10]}|"
-echo "|${regexes[13]}|"
-echo "|${regexes[14]}|"
+for (( i=0; $i < ${#regexes[*]}; i++ )); do
+    echo "${regexes[$i]}" | tr -d '"'
+done
+
+#echo
+#echo "|${regexes[10]}|"
+#echo "|${regexes[13]}|"
+#echo "|${regexes[14]}|"
 
 IFS=$oIFS
