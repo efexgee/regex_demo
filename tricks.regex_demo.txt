@@ -1,0 +1,16 @@
+tricks
+Handy tricks and techniques
+
+It's always 21:43:48 somewhere
+colorless green ideas sleep furiously.
+Mar 23 2017 13:45:21 Stuff broke
+My favorite acauses start with inj
+Because I love injuries?
+This matches don't just fine
+But would also match donut
+
+ ([^:]*:){2}[^:]* 
+([a-zA-Z])\1
+... .. .... ..:..:.. 
+(inj|$)
+don.t

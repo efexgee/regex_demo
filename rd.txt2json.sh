@@ -7,6 +7,7 @@ shopt -s expand_aliases
 # make jshon read from /dev/null so it doesn't break 'read'
 # by closing the file descriptor, and suppress errors
 alias to_json='jshon -Q -F /dev/null -s'
+#TODO alias read to read -r
 
 IFS=$'\n'
 
@@ -42,7 +43,8 @@ done
 echo
 echo "],"
 
-read line   # gobble up blank line
+#read -r line   # gobble up blank line
+#TODO why don't we need this?
 
 # read regexes
 echo "$(to_json regexes): ["

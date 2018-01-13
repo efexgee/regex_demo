@@ -1,3 +1,6 @@
+basics
+Basic introduction to regex features
+
 Colorless green ideas sleep furiously.
 colorless green ideas sleep furiously.
 Colorless green ideas sleep furiously
@@ -7,3 +10,15 @@ Colorless green ideas sleep furious.
 Colorless green Ideas sleep furiously.
 Colorless green ideas sleep ferociously.
 Colorless green ideas rest ferociously.
+
+Color
+s s
+. .
+g.*f
+^C
+.$
+ [is[
+[A-Zaeiou]
+[^sS]
+(lo|ee|oc)
+([a-z][A-Z])\1
