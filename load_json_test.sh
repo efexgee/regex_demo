@@ -6,21 +6,27 @@ alias jq='jq -r'
 
 oIFS=$IFS
 
-INFILE="original.regex_demo.json"
+infile=$1
 
-title=$(jq '.title' $INFILE)
-description=$(jq '.description' $INFILE)
+if [ -z $infile ]; then
+    echo "This shouldn't be empty"
+    exit 1
+fi
+
+title=$(jq '.title' $infile)
+description=$(jq '.description' $infile)
 
 echo "$title: $description"
 echo
 
-text=$(jq '.text[]' $INFILE)
+text=$(jq '.text[]' $infile)
 
 echo "$text"
 echo
 
-IFS=$'\t'
-regexes=( $(jq '.regexes | @tsv' $INFILE) )
+IFS=$'\n'
+# .regexes must be referenced as a list or the escaping breaks
+regexes=( $(jq '.regexes[]' $infile) )
 
 for (( i=0; $i < ${#regexes[*]}; i++ )); do
     echo "${regexes[$i]}" | tr -d '"'
