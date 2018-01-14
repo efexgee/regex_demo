@@ -124,8 +124,8 @@ function load_demo () {
     text=$(jq '.text[]' $infile)
 
     oIFS=$IFS
-    local IFS=$'\t'
-    regexes=( $(jq '.regexes | @tsv' $infile | tr -d '"') )
+    local IFS=$'\n'
+    regexes=( $(jq '.regexes[]' $infile) )
 
     # reset IFS so the 'wc -L' will work below
     IFS=$oIFS
