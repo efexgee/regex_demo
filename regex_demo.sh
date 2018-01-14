@@ -43,7 +43,6 @@ tabs -${TAB}
 
 # set up the regular expressions
 oIFS=$IFS   # backup the input field separator
-IFS=$'\n'   # need this dollar or some escapes get evaluated in the strings
 
 DEMO_FILE_SUFFIX=".regex_demo.json"
 
@@ -115,6 +114,8 @@ function load_demo () {
     #TODO this will break on tab characters
     local infile=$1
 
+    local IFS=$'\n'
+
     # reset to first regex in the list
     #TODO reset to -1 because -1 + 2 = 1 ... :(
     regex_id=-1
@@ -123,12 +124,7 @@ function load_demo () {
     description=$(jq '.description' $infile)
     text=$(jq '.text[]' $infile)
 
-    oIFS=$IFS
-    local IFS=$'\n'
     regexes=( $(jq '.regexes[]' $infile) )
-
-    # reset IFS so the 'wc -L' will work below
-    IFS=$oIFS
 
     # build a pattern to match menu replies
     choices=`seq -s '|' 1 ${#regexes[*]}`
@@ -250,6 +246,7 @@ function grep_it () {
     local grep_line=$2
 
     clear
+
     # just using grep to add the line numbers for consistent
     # appearance
     echo "$text" | grep '$'
@@ -276,15 +273,18 @@ function grep_it () {
     tput hpa 0
     tput cnorm  # show the cursor
 
-    # check for a request to quit (though not offered)
+    # secret check for a request to quit
     if [[ $input == "q" ]]; then
         quitting
     fi
 
     # print the grep output
+
     # the "regex|$" must not be inside "()" or regexes with back
     # references will break
+    #DEBUG echo "grep |$grep_args| |$grep_regex|"
     echo "$text" | grep $grep_args "$grep_regex|$"
+
     prompt
 }
 
@@ -310,6 +310,8 @@ function prompt() {
 }
 
 function input_regex () {
+    # since we're using 'echo' to "return" values from the
+    # function we can't print to STDOUT during the input
     exec 3>&1 1>&2  # "save" STDOUT to FD3, redirect to STDERR
 
     local oIFS=$IFS
@@ -317,9 +319,14 @@ function input_regex () {
 
     # get flags for the grep command
     local grep_args=''
-    read -p "Enter grep arguments: $YELLOW" grep_args
+    # -e allows us to handle things like backspaces
+    read -e -p "Enter grep arguments: $YELLOW" grep_args
+    # turn off colors without printing a newline
     echo -n $NORM
+
     if [[ -n $grep_args ]]; then
+        # clean up args
+        grep_args=$(echo $grep_args | sed 's/  */ /g; s/^ *//; s/ *$//')
         # add a spacer between the flag and the /regex/
         grep_spacer=" "
     fi
@@ -328,7 +335,8 @@ function input_regex () {
 
     # get the regex
     tput civis  # hide the cursor
-    IFS=''  # disable the input field separator
+    #TODO disable why?
+    local IFS=''  # disable the input field separator
 
     # use 'read' in a loop to fake interactive editor behavior
     local input
@@ -345,7 +353,6 @@ function input_regex () {
             "")
                 # enter was probably pressed
                 # accept the regex
-                #DEBUG echo; echo "regex is |$grep_args;$regex|"
                 break ;;
             $BACKSPACE)
                 # handle backspace
@@ -355,33 +362,29 @@ function input_regex () {
             [[:print:]]) regex+="$input" ;;
         esac
 
-        #echo -n ' (o)'
-        #sleep 0.1
-
         # overwrite the prompt
         tput dl1    # delete the current line
         tput hpa 0  # move cursor to the beginning of line
     done
 
-    IFS=$oIFS   # restore IFS
     tput cnorm  # un-hide cursor
 
     exec 1>&3   # restore STDOUT
 
-    echo $regex
+    echo "${grep_args};${regex}"
 }
 
 function interactive () {
     # allow input of a custom regex to run on the text
     echo
     # get the regex via pretty interface
-    regex=$(input_regex)
+    local grep_line=$(input_regex)
 
     # we need to give grep_it() a label
     local label="*"
 
     # run it on the text
-    grep_it "$label" "${opts};${regex}"
+    grep_it "$label" "$grep_line"
 }
 
 function demo_menu () {
@@ -398,7 +401,7 @@ function demo_menu () {
 
     local PS3=$'\n'"Choose a regex demo `hi c`ontinue `hi q`uit: "
 
-    #TODO what does this get set for?
+    # disable file globbing so '*' doesn't get expanded
     set +f
 
     for demo_file in $(\ls *${DEMO_FILE_SUFFIX}); do
@@ -424,13 +427,16 @@ function demo_menu () {
         esac
     done
 
-    #TODO ditto
+    # re-enable file globbing
     set -f
 }
 
 function regex_menu () {
     # draw the menu of regexes to choose from
     clear
+
+    local IFS=$'\n'
+
     # set the terminal width so 'select' can align
     # colored text
     COLUMNS=$(set_term_width $regex_width)
@@ -468,20 +474,21 @@ function regex_menu () {
     COLUMNS=$(tput cols)
 }
 
-# technically, this is the actual script
+# main
 while true; do
     for ((regex_id = 0; regex_id < ${#regexes[*]}; regex_id++)); do
         grep_it $((regex_id + 1)) "${regexes[$regex_id]}"
     done
 
     while true; do
+        # don't just exit when we reach the end of the list
         read -n 1 -p "At the end. Quit? (y/n) " response
 
         case $response in
             "y") quitting ;;
-            # "no" breaks out of the "y/n" 'while' loop
-            # then the 'for' loop starts over
             "n") break ;;
+            # break out of the inner 'while' loop
+            # then the 'for' loop starts over
             *) echo "Please answer (y/n)" ;;
         esac
     done

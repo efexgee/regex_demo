@@ -3,7 +3,7 @@
 # Converts simple RegexDemo input text files to JSON
 
 if (( $# != 1 )); then
-    echo "Usage: $0 <text file>"
+    echo "Usage: $0 <text file>" >&2
     exit 1
 fi
 

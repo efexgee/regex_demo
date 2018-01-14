@@ -32,6 +32,8 @@
 "[A-Z]",
 "^[A-Z]",
 "ee",
+"-i -v;Xx",
+"-i -v;ee",
 "ideas",
 "ide[ae]s",
 "[iI]de[ae]s",
