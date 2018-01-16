@@ -36,8 +36,13 @@ shopt -s expand_aliases
 # set default grep options
 # -n print line numbers
 # -E use extended regular expressions (egrep)
-alias grep='grep --color=always -n -E'
-export GREP_COLORS='ms=04;31:mc=33:sl=:cx=:fn=01;37:ln=32:bn=35:se=36'
+# -C100 print 100 lines of context
+alias grep='grep --color=always -n -E -C100'
+# The '-C100', 'mc=', "bogus line", and '-e' in grep_it
+# appended to the sample text allow us to always show
+# unmatched lines in grey, even if no lines matched.
+export GREP_COLORS='ms=04;31:mc=01;04;31:sl=:cx=01;30:fn=01;37:ln=32:bn=35:se=36'
+GREP_BOGUS_LINE='#!~;;~!#'
 
 alias jq='jq -r'
 
@@ -127,6 +132,7 @@ function load_demo () {
     title=$(jq '.title' $infile)
     description=$(jq '.description' $infile)
     text=$(jq '.text[]' $infile)
+    text+=$(echo -e "\n${GREP_BOGUS_LINE}")
 
     regexes=( $(jq '.regexes[]' $infile) )
 
@@ -250,7 +256,7 @@ function grep_it () {
 
     # just using grep to add the line numbers for consistent
     # appearance
-    echo "$text" | grep '$'
+    echo "$text" | grep '$' | head -n -1
     echo
 
     # '-s' makes 'cut' skip the line if there is no delimeter
@@ -281,7 +287,7 @@ function grep_it () {
     fi
 
     # print the grep output
-    echo "$text" | grep $grep_args -e '$' -e "$grep_regex" 2> /dev/null
+    echo "$text" | grep $grep_args -e "$GREP_BOGUS_LINE" -e "$grep_regex" | head -n -1 2> /dev/null
 
     if (( $? == 2 )); then
         echo "GREP ERROR: args=|${YELLOW}${grep_args}${NORM}| regex=|${RED}${grep_regex}${NORM}|" >&2
