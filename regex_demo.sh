@@ -253,13 +253,14 @@ function grep_it () {
     echo
 
     # '-s' makes 'cut' skip the line if there is no delimeter
-    local grep_args=`echo $grep_line | cut -s -d';' -f1`
+    local grep_args=`echo "$grep_line" | cut -s -d';' -f1`
+    local grep_spacer=''
     # if we have args, pad them with a space
     if [[ $grep_args != "" ]]; then
-        local grep_spacer=" "
+        grep_spacer=" "
     fi
     # 'cut' matches the whole line if there is no delimiter
-    local grep_regex=`echo $grep_line | cut -d';' -f2`
+    local grep_regex=`echo "$grep_line" | cut -d';' -f2`
 
     # print the regex that is about to be applied
     echo "$label: grep ${YELLOW}${grep_args}${NORM}${grep_spacer}/${RED}$grep_regex${NORM}/"
@@ -313,8 +314,9 @@ function input_regex () {
     local oIFS=$IFS
     local BACKSPACE=`tput kbs`
 
-    # get flags for the grep command
     local grep_args=''
+    local grep_spacer=''
+    # get flags for the grep command
     # -e allows us to handle things like backspaces
     read -e -p "Enter grep arguments: $YELLOW" grep_args
     # turn off colors without printing a newline
@@ -367,7 +369,11 @@ function input_regex () {
 
     exec 1>&3   # restore STDOUT
 
-    echo "${grep_args};${regex}"
+    if [[ -n $grep_args ]]; then
+        echo "${grep_args};${regex}"
+    else
+        echo "$regex"
+    fi
 }
 
 function interactive () {
