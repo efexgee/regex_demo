@@ -388,6 +388,8 @@ function demo_menu () {
     echo "Load a regex_demo file"
     echo
 
+    local IFS=$'\n'
+
     local i=0
     local demo_file
     local demo_files
