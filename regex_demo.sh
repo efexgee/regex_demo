@@ -277,7 +277,11 @@ function grep_it () {
     fi
 
     # print the grep output
-    echo "$text" | grep $grep_args -e '$' -e "$grep_regex"
+    echo "$text" | grep $grep_args -e '$' -e "$grep_regex" 2> /dev/null
+
+    if (( $? == 2 )); then
+        echo "GREP ERROR: args=|${YELLOW}${grep_args}${NORM}| regex=|${RED}${grep_regex}${NORM}|" >&2
+    fi
 
     prompt
 }

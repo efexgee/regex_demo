@@ -9,4 +9,13 @@ regex|$
 [^]
     What does ^[^A-Z] do
     What does [^]A-Z do
-    
+grep options
+    -i
+    -w
+    -o
+    -c
+    not for demo
+    -v
+    -m N
+    -r
+    -A -B
