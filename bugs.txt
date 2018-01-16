@@ -1,0 +1,4 @@
+regexes lose their leading spaces
+load file menu is garbled (should be IFS)
+handle grep errors on illegal regex
+

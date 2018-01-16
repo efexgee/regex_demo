@@ -1,0 +1,12 @@
+regex|$
+    Why can't we use regex|.
+    Why can't we use ^|regex
+    Are there other ways to do this
+(.)\1
+    What does (..)\1 do
+    What does (.)\1\1 do
+    What does (.)\1.*(.)\1 do 
+[^]
+    What does ^[^A-Z] do
+    What does [^]A-Z do
+    
