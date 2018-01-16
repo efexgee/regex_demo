@@ -279,11 +279,7 @@ function grep_it () {
     fi
 
     # print the grep output
-
-    # the "regex|$" must not be inside "()" or regexes with back
-    # references will break
-    #DEBUG echo "grep |$grep_args| |$grep_regex|"
-    echo "$text" | grep $grep_args "$grep_regex|$"
+    echo "$text" | grep $grep_args -e '$' -e "$grep_regex"
 
     prompt
 }
