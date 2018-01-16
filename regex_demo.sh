@@ -87,8 +87,8 @@ function prep_pretty () {
         # build grep args string
         local grep_args=""
         grep_args+="$YELLOW"
-        if echo $regex_line | grep -q ';'; then
-            grep_args+="$(echo $regex_line | cut -d';' -f1)"
+        if echo "$regex_line" | grep -q ';'; then
+            grep_args+="$(echo "$regex_line" | cut -d';' -f1)"
             grep_args+=" "
         fi
         grep_args+="$NORM"
@@ -96,7 +96,7 @@ function prep_pretty () {
         # build grep regex string
         local grep_regex="/"
         grep_regex+="$RED"
-        grep_regex+="$(echo $regex_line | cut -d';' -f2)"
+        grep_regex+="$(echo "$regex_line" | cut -d';' -f2)"
         grep_regex+="$NORM"
         grep_regex+="/"
 
@@ -221,9 +221,6 @@ function set_term_width () {
         need_width=$(add_a_tab $need_width $SELECT_TAB)
     done
 
-    #DEBUG echo "screen_width=$screen_width. printed_width=$printed_width. want_cols=$want_cols" >&2
-    #DEBUG echo "actual_width=$actual_width. need_width=$need_width" >&2
-    #DEBUG echo "first string should end at $printed_width and second should start at $(( $(add_a_tab $printed_width $TAB) + 1))" >&2
     echo $need_width
 }
 
@@ -237,7 +234,7 @@ function hi () {
     local output+=$NORM
     local output+=")"
 
-    echo -n $output
+    echo -n "$output"
 }
 
 function grep_it () {
@@ -324,7 +321,7 @@ function input_regex () {
 
     if [[ -n $grep_args ]]; then
         # clean up args
-        grep_args=$(echo $grep_args | sed 's/  */ /g; s/^ *//; s/ *$//')
+        grep_args="$(echo $grep_args | sed 's/  */ /g; s/^ *//; s/ *$//')"
         # add a spacer between the flag and the /regex/
         grep_spacer=" "
     fi

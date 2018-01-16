@@ -3,6 +3,6 @@ add custom regex to list?
 rename interactive to custom?
 real interactive mode? (real-time eval?)
 custom regex are blue?
-show previous results while entering custom
+disappear prompt after selecting custom
 allow comments on regexes ("intent was to")
 allow diff sample text per regex
