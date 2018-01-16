@@ -14,8 +14,8 @@ Colorless green ideas rest ferociously.
 c
 C
 p f
--i;c
--i;^c
+-i~c
+-i~^c
 s
 ss
 .
@@ -28,8 +28,8 @@ i
 [A-Z]
 ^[A-Z]
 ee
--i -v;Xx
--i -v;ee
+-i -v~Xx
+-i -v~ee
 ideas
 ide[ae]s
 [iI]de[ae]s
@@ -37,8 +37,8 @@ ide[ae]s
 ^.$
 ^.*$
 ^.*\.$
--i;ide[ae]s
--i;([aeiou])\1
--i;[aeiou][aeiou]+
+-i~ide[ae]s
+-i~([aeiou])\1
+-i~[aeiou][aeiou]+
 [aeiou]{2,}
--v;[^aeiou ]{2,}
+-v~[^aeiou ]{2,}

@@ -6,3 +6,4 @@ custom regex are blue?
 disappear prompt after selecting custom
 allow comments on regexes ("intent was to")
 allow diff sample text per regex
+sed replacement?

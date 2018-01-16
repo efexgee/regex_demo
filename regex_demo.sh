@@ -4,6 +4,11 @@
 
 # GLOBALS
 
+# separator between grep args and the regex
+# ~ is a special character in VI's ex mode
+# but not in regex or grep
+REGEX_SEP='~'
+
 function quitting() {
     # also executes on ctrl-c
     # quits with status 0 because it was user-initiated
@@ -22,7 +27,6 @@ trap quitting SIGINT
 set -f
 
 # enable shell pattern matching
-#TODO I believe this is for matching the $choices string
 # in the case statements
 shopt -s extglob
 
@@ -87,8 +91,8 @@ function prep_pretty () {
         # build grep args string
         local grep_args=""
         grep_args+="$YELLOW"
-        if echo "$regex_line" | grep -q ';'; then
-            grep_args+="$(echo "$regex_line" | cut -d';' -f1)"
+        if echo "$regex_line" | grep -q $REGEX_SEP; then
+            grep_args+="$(echo "$regex_line" | cut -d${REGEX_SEP} -f1)"
             grep_args+=" "
         fi
         grep_args+="$NORM"
@@ -96,7 +100,7 @@ function prep_pretty () {
         # build grep regex string
         local grep_regex="/"
         grep_regex+="$RED"
-        grep_regex+="$(echo "$regex_line" | cut -d';' -f2)"
+        grep_regex+="$(echo "$regex_line" | cut -d${REGEX_SEP} -f2)"
         grep_regex+="$NORM"
         grep_regex+="/"
 
@@ -117,7 +121,7 @@ function load_demo () {
     local IFS=$'\n'
 
     # reset to first regex in the list
-    #TODO reset to -1 because -1 + 2 = 1 ... :(
+    #TODO reset to -1 because -1 + 2 = 1 ...
     regex_id=-1
 
     title=$(jq '.title' $infile)
@@ -250,14 +254,14 @@ function grep_it () {
     echo
 
     # '-s' makes 'cut' skip the line if there is no delimeter
-    local grep_args=`echo "$grep_line" | cut -s -d';' -f1`
+    local grep_args=`echo "$grep_line" | cut -s -d${REGEX_SEP} -f1`
     local grep_spacer=''
     # if we have args, pad them with a space
     if [[ $grep_args != "" ]]; then
         grep_spacer=" "
     fi
     # 'cut' matches the whole line if there is no delimiter
-    local grep_regex=`echo "$grep_line" | cut -d';' -f2`
+    local grep_regex=`echo "$grep_line" | cut -d${REGEX_SEP} -f2`
 
     # print the regex that is about to be applied
     echo "$label: grep ${YELLOW}${grep_args}${NORM}${grep_spacer}/${RED}$grep_regex${NORM}/"
@@ -371,7 +375,7 @@ function input_regex () {
     exec 1>&3   # restore STDOUT
 
     if [[ -n $grep_args ]]; then
-        echo "${grep_args};${regex}"
+        echo "${grep_args}${REGEX_SEP}${regex}"
     else
         echo "$regex"
     fi

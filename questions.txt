@@ -19,3 +19,5 @@ grep options
     -m N
     -r
     -A -B
+grep
+    "global" behavior; how to force first occurence
