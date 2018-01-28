@@ -36,8 +36,10 @@ shopt -s expand_aliases
 # set default grep options
 # -n print line numbers
 # -E use extended regular expressions (egrep)
+alias grep='grep --color=always -n -E'
+# for the demo output, add
 # -C100 print 100 lines of context
-alias demo_grep='grep --color=always -n -E -C100'
+alias demo_grep='grep -C100'
 # The '-C100', 'mc=', "bogus line", and '-e' in grep_it
 # appended to the sample text allow us to always show
 # unmatched lines in grey, even if no lines matched.
@@ -57,6 +59,9 @@ DEMO_FILE_SUFFIX=".regex_demo.json"
 
 # default file to use as the input text if no filename is provided
 DEFAULT_INFILE="./original${DEMO_FILE_SUFFIX}"
+
+# backspace key
+BACKSPACE=`tput kbs`
 
 # define some colors
 NORM=`tput sgr0`
@@ -306,7 +311,7 @@ function prompt() {
     echo
 
     tput civis  # hide cursor
-    read -s -n 1 -p "`hi b`ack `hi j`ump `hi c`ustom `hi l`oad file `hi q`uit | Next " input
+    read -s -n 1 -p "`hi b`ack `hi j`ump `hi c`ustom `hi i`nteractive `hi l`oad file `hi q`uit | Next " input
     # since the input requires no <enter> we print
     # a newline to keep things pretty
     echo
@@ -316,6 +321,7 @@ function prompt() {
         "q") quitting ;;
         "j") regex_menu ;;
         "c") custom ;;
+        "i") interactive ;;
         # to go back 1 we need to subtract 2
         "b") regex_id=$((regex_id - 2)) ;;
         "l") demo_menu ;;
@@ -329,7 +335,6 @@ function input_regex () {
     exec 3>&1 1>&2  # "save" STDOUT to FD3, redirect to STDERR
 
     local oIFS=$IFS
-    local BACKSPACE=`tput kbs`
 
     local grep_args=''
     local grep_spacer=''
@@ -404,6 +409,64 @@ function custom () {
 
     # run it on the text
     grep_it "$label" "$grep_line"
+}
+
+function interactive () {
+    # show matches in real-time
+
+    tput civis  # hide the cursor
+
+    # use 'read' in a loop to fake interactive editor behavior
+    local input
+    local regex
+    local prompt
+    local output
+    local old_output
+
+    # make local copy without bogus line because we don't need it
+    local text=$(echo "$text" | head -n -1)
+
+    while true; do
+        clear
+
+        regex="$prompt"
+        output=$(echo "$text" | egrep --color=always -n -e '$' -e "$regex" 2> /dev/null)
+
+        if (( $? == 2 )); then
+            echo "$old_output"
+        else
+            echo "$output"
+            old_output="$output"
+        fi
+
+        echo
+
+        #TODO use '-s' on read, but breaks terminal if ctrl-c'd
+        read -rn 1 -p "Enter regex: grep /${RED}${prompt}${NORM}/" input
+
+        case $input in
+            "")
+                # enter was probably pressed
+                # accept the regex
+                break ;;
+            $BACKSPACE)
+                # handle backspace
+                prompt=${prompt%?} ;;
+            # anything else is added to the regex
+            # matching printable characters doesn't save us from arrow keys
+            [[:print:]])
+                prompt+="$input" ;;
+        esac
+
+        # overwrite the prompt
+        tput dl1    # delete the current line
+        tput hpa 0  # move cursor to the beginning of line
+    done
+
+    tput cnorm  # un-hide cursor
+
+    #TODO confirm quitting interactive mode?
+    #TODO if we have a way to save customs, we should offer to save here
 }
 
 function demo_menu () {
