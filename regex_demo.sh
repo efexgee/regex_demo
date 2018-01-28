@@ -12,7 +12,7 @@ REGEX_SEP='~'
 function quitting() {
     # also executes on ctrl-c
     # quits with status 0 because it was user-initiated
-    echo $NORM  # restore default font
+    echo -n $NORM  # restore default font
     tabs -8     # restore default tab width
     IFS=$oIFS   # restore IFS
     tput cnorm  # restore cursor
@@ -46,6 +46,11 @@ export GREP_COLORS='ms=04;31:mc=01;04;31:sl=:cx=01;30:fn=01;37:ln=32:bn=35:se=36
 GREP_BOGUS_LINE='#!~;;~!#'
 
 alias jq='jq -r'
+
+# cursor manipulations
+alias hide_cursor='tput civis'
+alias show_cursor='tput cnorm'
+alias reset_line='tput dl1; tput hpa 0'
 
 # set our tab width
 TAB=1   # also used in tab-related functions
@@ -118,8 +123,6 @@ function prep_pretty () {
         # color codes
         pretty_regexes[$i]=$(printf "%-*s" $padded_width "${grep_args}${grep_regex}")
     done
-
-    #DEBUG pretty_regexes[11]=`printf "${YELLOW}${NORM}${RED}${NORM}%.*s" $((padded_width - $COLOR_PADDING)) '-------------------------------------------'`
 }
 
 function load_demo () {
@@ -150,8 +153,6 @@ function load_demo () {
 
     prep_pretty
 }
-
-load_demo $infile
 
 function rnd_up_to_multiple () {
     # round up to the nearest multiple of N
@@ -280,12 +281,11 @@ function grep_it () {
     echo
 
     # wait for user with a prompt
-    tput civis  # hide the cursor
-    read -s -n 1 -p "${BLACK}Hit <enter> to see the regex applied${NORM} " input
+    hide_cursor
+    read -s -n 1 -p "${BLACK}Hit <enter> to see the regex applied${NORM}" input
     # delete the prompt before printing the results
-    tput dl1
-    tput hpa 0
-    tput cnorm  # show the cursor
+    reset_line
+    show_cursor
 
     # secret check for a request to quit
     if [[ $input != "" ]]; then
@@ -318,7 +318,7 @@ function validating_prompt () {
     local prompt="$1"
     local options="$2"
 
-    tput civis
+    hide_cursor
 
     while true; do
         read -s -n 1 -p "$prompt"
@@ -327,14 +327,11 @@ function validating_prompt () {
         elif echo $REPLY | grep -q "[$options]"; then
             break
         fi
-        tput dl1    # delete the current line
-        tput hpa 0  # move cursor to the beginning of line
+        reset_line
     done
 
-    tput dl1    # delete the current line
-    tput hpa 0  # move cursor to the beginning of line
-
-    tput cnorm
+    reset_line
+    show_cursor
 
     process_input $REPLY
 }
@@ -365,8 +362,6 @@ function input_regex () {
     # function we can't print to STDOUT during the input
     exec 3>&1 1>&2  # "save" STDOUT to FD3, redirect to STDERR
 
-    local oIFS=$IFS
-
     local grep_args=''
     local grep_spacer=''
 
@@ -387,9 +382,7 @@ function input_regex () {
     echo
 
     # get the regex
-    tput civis  # hide the cursor
-    #TODO disable why?
-    local IFS=''  # disable the input field separator
+    hide_cursor
 
     # use 'read' in a loop to fake custom editor behavior
     local input
@@ -416,11 +409,10 @@ function input_regex () {
         esac
 
         # overwrite the prompt
-        tput dl1    # delete the current line
-        tput hpa 0  # move cursor to the beginning of line
+        reset_line
     done
 
-    tput cnorm  # un-hide cursor
+    show_cursor
 
     exec 1>&3   # restore STDOUT
 
@@ -447,7 +439,7 @@ function custom () {
 function interactive () {
     # show matches in real-time
 
-    tput civis  # hide the cursor
+    hide_cursor
 
     # use 'read' in a loop to fake interactive editor behavior
     local input
@@ -492,11 +484,10 @@ function interactive () {
         esac
 
         # overwrite the prompt
-        tput dl1    # delete the current line
-        tput hpa 0  # move cursor to the beginning of line
+        reset_line
     done
 
-    tput cnorm  # un-hide cursor
+    show_cursor
 
     #TODO confirm quitting interactive mode?
     #TODO if we have a way to save customs, we should offer to save here
@@ -565,7 +556,7 @@ function regex_menu () {
 
     select choice in ${pretty_regexes[*]}; do
         case $REPLY in
-                #TODO it would be nice to catch <return> here
+                #TODO catch return by putting all this in a while loop
             "c") break ;;
                 # don't jump to a different regex
             "q") quitting ;;
@@ -594,6 +585,8 @@ function regex_menu () {
 }
 
 # main
+load_demo $infile
+
 while true; do
     for ((regex_id = 0; regex_id < ${#regexes[*]}; regex_id++)); do
         grep_it $((regex_id + 1)) "${regexes[$regex_id]}"
