@@ -13,7 +13,6 @@ function quitting() {
     # also executes on ctrl-c
     # quits with status 0 because it was user-initiated
     echo $NORM  # restore default font
-    echo "Quitting."
     tabs -8     # restore default tab width
     IFS=$oIFS   # restore IFS
     tput cnorm  # restore cursor
@@ -257,6 +256,8 @@ function grep_it () {
     local label=$1
     local grep_line=$2
 
+    local input
+
     clear
 
     # just using grep to add the line numbers for consistent
@@ -287,44 +288,74 @@ function grep_it () {
     tput cnorm  # show the cursor
 
     # secret check for a request to quit
-    if [[ $input == "q" ]]; then
-        quitting
+    if [[ $input != "" ]]; then
+        # if anything other than <enter> was pressed
+        # process it
+        process_input "$input"
+    else
+        # showing the result of applying the regex
+
+        # print the grep output
+        grep_output=$(echo "$text" | demo_grep $grep_args -e "$GREP_BOGUS_LINE" -e "$grep_regex" 2> /dev/null)
+
+        case $? in
+            # the grep is good; cut off the bogus line
+            0) echo "$grep_output" | head -n -1 ;;
+            # the grep matched nothing (probably -v); force a fake no-match via bogus line
+            # or it will print nothing at all
+            1) echo "$text" | demo_grep -e "$GREP_BOGUS_LINE" | head -n -1 ;;
+            # grep error: print slightly prettier output
+            2) echo "GREP ERROR: args=|${YELLOW}${grep_args}${NORM}| regex=|${RED}${grep_regex}${NORM}|" >&2 ;;
+        esac
+
+        echo
+        validating_prompt "`hi b`ack `hi j`ump `hi c`ustom `hi i`nteractive `hi l`oad file `hi q`uit | Next " "bjcilq"
     fi
-
-    # print the grep output
-    grep_output=$(echo "$text" | demo_grep $grep_args -e "$GREP_BOGUS_LINE" -e "$grep_regex" 2> /dev/null)
-
-    case $? in
-        # the grep is good; cut off the bogus line
-        0) echo "$grep_output" | head -n -1 ;;
-        # the grep matched nothing (probably -v); force a fake no-match via bogus line
-        # or it will print nothing at all
-        1) echo "$text" | demo_grep -e "$GREP_BOGUS_LINE" | head -n -1 ;;
-        # grep error: print slightly prettier output
-        2) echo "GREP ERROR: args=|${YELLOW}${grep_args}${NORM}| regex=|${RED}${grep_regex}${NORM}|" >&2 ;;
-    esac
-
-    prompt
 }
 
-function prompt() {
-    echo
+function validating_prompt () {
+    # prompt until a valid entry is received
+    local prompt="$1"
+    local options="$2"
 
-    tput civis  # hide cursor
-    read -s -n 1 -p "`hi b`ack `hi j`ump `hi c`ustom `hi i`nteractive `hi l`oad file `hi q`uit | Next " input
-    # since the input requires no <enter> we print
-    # a newline to keep things pretty
-    echo
-    tput cnorm  # restore cursor
+    tput civis
 
-    case $input in
+    while true; do
+        read -s -n 1 -p "$prompt"
+        if [[ $REPLY == "" ]]; then
+            break
+        elif echo $REPLY | grep -q "[$options]"; then
+            break
+        fi
+        tput dl1    # delete the current line
+        tput hpa 0  # move cursor to the beginning of line
+    done
+
+    tput dl1    # delete the current line
+    tput hpa 0  # move cursor to the beginning of line
+
+    tput cnorm
+
+    process_input $REPLY
+}
+
+function process_input () {
+    # process the input from prompts
+    # allows for selecting options even when not
+    # offered
+    local option=$1
+
+    case $option in
         "q") quitting ;;
         "j") regex_menu ;;
         "c") custom ;;
         "i") interactive ;;
+        #TODO don't let this go negative!
         # to go back 1 we need to subtract 2
         "b") regex_id=$((regex_id - 2)) ;;
         "l") demo_menu ;;
+        # return a status to indicate we did nothing
+        # to allow callers to handle that if necessary
         *) ;;
     esac
 }
@@ -338,6 +369,8 @@ function input_regex () {
 
     local grep_args=''
     local grep_spacer=''
+
+    #TODO ask for arguments after the regex
     # get flags for the grep command
     # -e allows us to handle things like backspaces
     read -e -p "Enter grep arguments: $YELLOW" grep_args
@@ -400,7 +433,7 @@ function input_regex () {
 
 function custom () {
     # allow input of a custom regex to run on the text
-    echo
+
     # get the regex via pretty interface
     local grep_line=$(input_regex)
 
@@ -513,6 +546,8 @@ function demo_menu () {
 
     # re-enable file globbing
     set -f
+
+    clear
 }
 
 function regex_menu () {
