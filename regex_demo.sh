@@ -37,7 +37,7 @@ shopt -s expand_aliases
 # -n print line numbers
 # -E use extended regular expressions (egrep)
 # -C100 print 100 lines of context
-alias grep='grep --color=always -n -E -C100'
+alias demo_grep='grep --color=always -n -E -C100'
 # The '-C100', 'mc=', "bogus line", and '-e' in grep_it
 # appended to the sample text allow us to always show
 # unmatched lines in grey, even if no lines matched.
@@ -287,11 +287,17 @@ function grep_it () {
     fi
 
     # print the grep output
-    echo "$text" | grep $grep_args -e "$GREP_BOGUS_LINE" -e "$grep_regex" | head -n -1 2> /dev/null
+    grep_output=$(echo "$text" | demo_grep $grep_args -e "$GREP_BOGUS_LINE" -e "$grep_regex" 2> /dev/null)
 
-    if (( $? == 2 )); then
-        echo "GREP ERROR: args=|${YELLOW}${grep_args}${NORM}| regex=|${RED}${grep_regex}${NORM}|" >&2
-    fi
+    case $? in
+        # the grep is good; cut off the bogus line
+        0) echo "$grep_output" | head -n -1 ;;
+        # the grep matched nothing (probably -v); force a fake no-match via bogus line
+        # or it will print nothing at all
+        1) echo "$text" | demo_grep -e "$GREP_BOGUS_LINE" | head -n -1 ;;
+        # grep error: print slightly prettier output
+        2) echo "GREP ERROR: args=|${YELLOW}${grep_args}${NORM}| regex=|${RED}${grep_regex}${NORM}|" >&2 ;;
+    esac
 
     prompt
 }
@@ -300,7 +306,7 @@ function prompt() {
     echo
 
     tput civis  # hide cursor
-    read -s -n 1 -p "`hi b`ack `hi j`ump `hi i`nteractive `hi l`oad file `hi q`uit | Next " input
+    read -s -n 1 -p "`hi b`ack `hi j`ump `hi c`ustom `hi l`oad file `hi q`uit | Next " input
     # since the input requires no <enter> we print
     # a newline to keep things pretty
     echo
@@ -309,7 +315,7 @@ function prompt() {
     case $input in
         "q") quitting ;;
         "j") regex_menu ;;
-        "i") interactive ;;
+        "c") custom ;;
         # to go back 1 we need to subtract 2
         "b") regex_id=$((regex_id - 2)) ;;
         "l") demo_menu ;;
@@ -347,7 +353,7 @@ function input_regex () {
     #TODO disable why?
     local IFS=''  # disable the input field separator
 
-    # use 'read' in a loop to fake interactive editor behavior
+    # use 'read' in a loop to fake custom editor behavior
     local input
     local regex
     while true; do
@@ -387,7 +393,7 @@ function input_regex () {
     fi
 }
 
-function interactive () {
+function custom () {
     # allow input of a custom regex to run on the text
     echo
     # get the regex via pretty interface
