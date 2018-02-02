@@ -309,7 +309,7 @@ function grep_it () {
         esac
 
         echo
-        validating_prompt "`hi b`ack `hi j`ump `hi c`ustom `hi i`nteractive `hi l`oad file `hi q`uit | Next " "bjcilq"
+        validating_prompt "`hi b`ack `hi j`ump `hi c`ustom `hi i`nteractive `hi l`oad file `hi q`uit | Next " "bjcilq" "enter"
     fi
 }
 
@@ -317,12 +317,17 @@ function validating_prompt () {
     # prompt until a valid entry is received
     local prompt="$1"
     local options="$2"
+    local accept_enter=false
+
+    if [[ $3 == "enter" ]]; then
+        accept_enter=true
+    fi
 
     hide_cursor
 
     while true; do
         read -s -n 1 -p "$prompt"
-        if [[ $REPLY == "" ]]; then
+        if $accept_enter && [[ $REPLY == "" ]]; then
             break
         elif echo $REPLY | grep -q "[$options]"; then
             break
@@ -592,16 +597,8 @@ while true; do
         grep_it $((regex_id + 1)) "${regexes[$regex_id]}"
     done
 
-    while true; do
-        # don't just exit when we reach the end of the list
-        read -n 1 -p "At the end. Quit? (y/n) " response
+    echo "At the end of demo."
+    echo
 
-        case $response in
-            "y") quitting ;;
-            "n") break ;;
-            # break out of the inner 'while' loop
-            # then the 'for' loop starts over
-            *) echo "Please answer (y/n)" ;;
-        esac
-    done
+    validating_prompt "`hi b`ack `hi j`ump `hi c`ustom `hi i`nteractive `hi l`oad file `hi q`uit" "bjcilq"
 done
