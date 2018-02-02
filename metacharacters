@@ -1,0 +1,14 @@
+[:alnum:]
+
+appendix on implied escaping
+
+\<
+\>
+
+\w
+\W
+
+\s
+\S
+
+grep -P --color=always 'comput(?=ation)(?!al)'

@@ -124,22 +124,31 @@ function prep_pretty () {
         pretty_regexes[$i]=$(printf "%-*s" $padded_width "${grep_args}${grep_regex}")
     done
 }
-
-function load_demo () {
-    # load text and regexes from a json file
+function load_demo_text () {
+    # load text from a json file
     #TODO this will break on tab characters
+    #TODO which will break on tabs?
     local infile=$1
 
+    #TODO why?
+    local IFS=$'\n'
+
+    text=$(jq '.text[]' $infile)
+    text+=$(echo -e "\n${GREP_BOGUS_LINE}")
+}
+
+function load_demo_regex () {
+    # load regexes from a json file
+    #TODO this will break on tab characters
+    #TODO which will break on tabs?
+    local infile=$1
+
+    #TODO why?
     local IFS=$'\n'
 
     # reset to first regex in the list
     #TODO reset to -1 because -1 + 2 = 1 ...
     regex_id=-1
-
-    title=$(jq '.title' $infile)
-    description=$(jq '.description' $infile)
-    text=$(jq '.text[]' $infile)
-    text+=$(echo -e "\n${GREP_BOGUS_LINE}")
 
     regexes=( $(jq '.regexes[]' $infile) )
 
@@ -152,6 +161,13 @@ function load_demo () {
     padded_width=$((regex_width + COLOR_PADDING)) # with slashes and colors
 
     prep_pretty
+}
+
+function load_demo () {
+    local infile=$1
+
+    load_demo_text $infile
+    load_demo_regex $infile
 }
 
 function rnd_up_to_multiple () {
