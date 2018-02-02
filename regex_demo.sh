@@ -16,6 +16,7 @@ function quitting() {
     tabs -8     # restore default tab width
     IFS=$oIFS   # restore IFS
     tput cnorm  # restore cursor
+    popd > /dev/null # restore previous directory
     exit 0
 }
 
@@ -90,6 +91,10 @@ if (( $# == 0 )); then
 else
     infile=$1
 fi
+
+# change directory to script directory
+pushd $(dirname $(realpath $0)) > /dev/null
+
 
 function prep_pretty () {
     # build pretty version of regex list
@@ -590,7 +595,13 @@ function regex_menu () {
 }
 
 # main
-load_demo $infile
+
+# check that the text file exists
+if [[ -f $infile ]]; then
+    load_demo $infile
+else
+    demo_menu
+fi
 
 while true; do
     for ((regex_id = 0; regex_id < ${#regexes[*]}; regex_id++)); do
