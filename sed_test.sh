@@ -28,7 +28,7 @@ echo "/${match}/${replace}/"
 echo
 echo "$text" | grep -e '$' -e "$match"
 echo
-echo "$text" | sed "s/${match}/${GREEN}${replace}${NORM}/g${options}" | grep -e '$'
+echo "$text" | sed "s~${match}~${GREEN}${replace}${NORM}~g${options}" | grep -e '$'
 echo
 read -s -n 1 -p "next"
 clear
