@@ -347,6 +347,7 @@ function process_input () {
         "j") regex_menu ;;
         "c") custom ;;
         "i") interactive ;;
+        "r") replacement ;;
         #TODO don't let this go negative!
         # to go back 1 we need to subtract 2
         "b") regex_id=$((regex_id - 2)) ;;
@@ -356,6 +357,133 @@ function process_input () {
         *) ;;
     esac
 }
+
+function replacement () {
+    input_replacement
+}
+
+function input_replacement () {
+    # since we're using 'echo' to "return" values from the
+    # function we can't print to STDOUT during the input
+    exec 3>&1 1>&2  # "save" STDOUT to FD3, redirect to STDERR
+
+    local grep_args=''
+    local grep_spacer=''
+
+    #TODO ask for arguments after the regex
+    # get flags for the grep command
+    # -e allows us to handle things like backspaces
+    read -e -p "Enter sed arguments: $YELLOW" grep_args
+    # turn off colors without printing a newline
+    echo -n $NORM
+
+    if [[ -n $grep_args ]]; then
+        # clean up args
+        grep_args="$(echo $grep_args | sed 's/  */ /g; s/^ *//; s/ *$//')"
+        # add a spacer between the flag and the /regex/
+        grep_spacer=" "
+    fi
+
+    echo
+
+    # get the regex
+    hide_cursor
+
+    # use 'read' in a loop to fake custom editor behavior
+    local input
+    local regex
+    while true; do
+        # the prompt is updating in the loop
+        # technically, the user is typing to the right
+        # of the prompt but since the cursor is invisible
+        # it looks like we're editing the prompt area
+        #TODO This doesn't seem to actually happen: use '-s' on read, but breaks terminal if ctrl-c'd
+        read -srn 1 -p "Enter regex: sed ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${regex}${NORM}/" input
+
+        case $input in
+            "")
+                # enter was probably pressed
+                # accept the regex
+                break ;;
+            $BACKSPACE)
+                # handle backspace
+                regex=${regex%?} ;;
+            # anything else is added to the regex
+            # matching printable characters doesn't save us from arrow keys
+            [[:print:]]) regex+="$input" ;;
+        esac
+
+        # overwrite the prompt
+        reset_line
+    done
+
+    reset_line
+
+    local find="$regex"
+    local regex=""
+
+    # use 'read' in a loop to fake custom editor behavior
+    local input
+    while true; do
+        read -srn 1 -p "Enter regex: sed ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${find}${NORM}/${GREEN}${regex}${NORM}/" input
+
+        case $input in
+            "")
+                # enter was probably pressed
+                # accept the regex
+                break ;;
+            $BACKSPACE)
+                # handle backspace
+                regex=${regex%?} ;;
+            # anything else is added to the regex
+            # matching printable characters doesn't save us from arrow keys
+            [[:print:]]) regex+="$input" ;;
+        esac
+
+        # overwrite the prompt
+        reset_line
+    done
+
+    reset_line
+
+    local repl="$regex"
+    local regex=""
+
+    # use 'read' in a loop to fake custom editor behavior
+    local input
+    while true; do
+        read -srn 1 -p "Enter regex: sed ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${find}${NORM}/${GREEN}${repl}${NORM}/${YELLOW}${regex}${NORM}" input
+
+        case $input in
+            "")
+                # enter was probably pressed
+                # accept the regex
+                break ;;
+            $BACKSPACE)
+                # handle backspace
+                regex=${regex%?} ;;
+            # anything else is added to the regex
+            # matching printable characters doesn't save us from arrow keys
+            [[:print:]]) regex+="$input" ;;
+        esac
+
+        # overwrite the prompt
+        reset_line
+    done
+
+
+
+    show_cursor
+
+    exec 1>&3   # restore STDOUT
+
+    if [[ -n $grep_args ]]; then
+        echo "${grep_args}${REGEX_SEP}${regex}"
+    else
+        echo "$regex"
+    fi
+}
+
 
 function input_regex () {
     # since we're using 'echo' to "return" values from the
