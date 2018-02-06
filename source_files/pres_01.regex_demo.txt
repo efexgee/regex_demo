@@ -1,0 +1,24 @@
+Presentation 01: Basics
+Literals, dot, and star
+
+Colorless green ideas sleep furiously.
+colorless green ideas sleep furiously.
+Colorless green ideas sleep furiously
+Colorless green idees sleep furiously.
+Color less green ideas sleep furiously.
+Colorless green ideas sleep furious.
+Colorless green Ideas sleep furiously.
+Colorless green ideas sleep ferociously.
+Colorless green ideas rest ferociously.
+
+green
+ green 
+color
+Color
+e
+e*
+ee.
+s.*s
+s.
+s\.
+.olor

@@ -34,9 +34,10 @@ shopt -s extglob
 shopt -s expand_aliases
 
 # set default grep options
-# -n print line numbers
 # -E use extended regular expressions (egrep)
-alias grep='grep --color=always -n -E'
+GREP_MODE='-E'
+# -n print line numbers
+alias grep='\grep --color=always -n'
 # for the demo output, add
 # -C100 print 100 lines of context
 alias demo_grep='grep -C100'
@@ -46,7 +47,7 @@ alias demo_grep='grep -C100'
 export GREP_COLORS='ms=04;31:mc=01;04;31:sl=:cx=01;30:fn=01;37:ln=32:bn=35:se=36'
 GREP_BOGUS_LINE='#!~;;~!#'
 
-alias jq='jq -r'
+alias jq='\jq -r'
 
 # cursor manipulations
 alias hide_cursor='tput civis'
@@ -63,7 +64,7 @@ oIFS=$IFS   # backup the input field separator
 DEMO_FILE_SUFFIX=".regex_demo.json"
 
 # default file to use as the input text if no filename is provided
-DEFAULT_INFILE="./original${DEMO_FILE_SUFFIX}"
+DEFAULT_INFILE="original${DEMO_FILE_SUFFIX}"
 
 # backspace key
 BACKSPACE=`tput kbs`
@@ -85,14 +86,22 @@ if ! which seq > /dev/null; then
     exit 10
 fi
 
+# check whether we have a 'realpath' command
+if ! which realpath > /dev/null; then
+    echo "Requires the realpath command."
+    exit 10
+fi
+
 # determine whether to use the default text file
 if (( $# == 0 )); then
     infile=$DEFAULT_INFILE
 else
-    infile=$1
+    # grab absolute path to file so we can pushd
+    infile=$(realpath $1)
 fi
 
-# change directory to script directory
+# change directory to script directory so we can
+# list all the demo files in that directory
 pushd $(dirname $(realpath $0)) > /dev/null
 
 
@@ -133,6 +142,7 @@ function prep_pretty () {
 function load_demo () {
     # load text and regexes from a json file
     #TODO this will break on tab characters
+
     local infile=$1
 
     local IFS=$'\n'
@@ -141,15 +151,13 @@ function load_demo () {
     #TODO reset to -1 because -1 + 2 = 1 ...
     regex_id=-1
 
-    title=$(jq '.title' $infile)
-    description=$(jq '.description' $infile)
     text=$(jq '.text[]' $infile)
     text+=$(echo -e "\n${GREP_BOGUS_LINE}")
 
     regexes=( $(jq '.regexes[]' $infile) )
 
     # build a pattern to match menu replies
-    choices=`seq -s '|' 1 ${#regexes[*]}`
+    regex_choices=`seq -s '|' 1 ${#regexes[*]}`
 
     # determine some widths
     input_width=$(echo "${regexes[*]}" | wc -L) # the widest regex line
@@ -278,6 +286,7 @@ function grep_it () {
     if [[ $grep_args != "" ]]; then
         grep_spacer=" "
     fi
+
     # 'cut' matches the whole line if there is no delimiter
     local grep_regex=`echo "$grep_line" | cut -d${REGEX_SEP} -f2`
 
@@ -300,8 +309,17 @@ function grep_it () {
     else
         # showing the result of applying the regex
 
-        # print the grep output
-        grep_output=$(echo "$text" | demo_grep $grep_args -e "$GREP_BOGUS_LINE" -e "$grep_regex" 2> /dev/null)
+        # handle one-off demonstrationg of lookahead, using PCRE
+        # behavior with -P is untested and unreliable
+        if [[ ! $grep_args =~ "P" ]]; then
+            # use standard regex_demo grepping
+            grep_output=$(echo "$text" | demo_grep $GREP_MODE $grep_args -e "$GREP_BOGUS_LINE" -e "$grep_regex" 2>&1)
+        else
+            # use hacky perl-style grepping
+            # grep -P does not support multiple '-e' arguments, so
+            # we can't grep the BOGUS_LINE to ensure a match
+            grep_output=$(echo "$text" | demo_grep -P "$grep_regex" 2>&1)
+        fi
 
         case $? in
             # the grep is good; cut off the bogus line
@@ -310,7 +328,7 @@ function grep_it () {
             # or it will print nothing at all
             1) echo "$text" | demo_grep -e "$GREP_BOGUS_LINE" | head -n -1 ;;
             # grep error: print slightly prettier output
-            2) echo "GREP ERROR: args=|${YELLOW}${grep_args}${NORM}| regex=|${RED}${grep_regex}${NORM}|" >&2 ;;
+            2) echo "GREP ERROR: args=|${YELLOW}${grep_args}${NORM}| regex=|${RED}${grep_regex}${NORM}|" >&2; echo "$grep_output" ;;
         esac
 
         echo
@@ -571,7 +589,7 @@ function regex_menu () {
                 # don't jump to a different regex
             "q") quitting ;;
                 # quit
-            @($choices))
+            @($regex_choices))
                 # if it's one of the numbers
                 # change the current regex ID
                 regex_id=$((REPLY -2))
@@ -584,6 +602,8 @@ function regex_menu () {
                 echo "padded_width=$padded_width"
                 echo "COLOR_PADDING=$COLOR_PADDING"
                 echo "COLUMNS=$COLUMNS"
+                echo "pwd=$(pwd)"
+                echo "regex_choices=$regex_choices"
                 ;;
             *) echo "Not a valid choice: $REPLY" ;;
                 # anything else is invalid

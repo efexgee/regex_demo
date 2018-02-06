@@ -8,6 +8,7 @@ if (( $# != 1 )); then
 fi
 
 infile=$1
+outfile=${infile/txt/json}
 
 oIFS=$IFS
 
@@ -19,6 +20,9 @@ alias to_json='jshon -Q -F /dev/null -s'
 alias read='read -r'
 
 IFS=$'\n'
+
+#output to outfile
+exec > $outfile
 
 # start JSON output
 echo '{'
