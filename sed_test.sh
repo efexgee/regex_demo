@@ -13,6 +13,7 @@ text=$(cat text)
 
 echo "$text"
 
+RED=`tput setaf 1`
 GREEN=`tput setaf 2`
 NORM=`tput sgr0`
 
@@ -28,9 +29,10 @@ read -e -r -p "options: " options
 echo
 echo "/${match}/${replace}/"
 echo
-echo "$text" | grep -e '$' -e "$match"
+#echo "$text" | grep -e '$' -e "$match"
+echo "$text" | sed "s${SEP}${match}${SEP}${RED}&${NORM}${SEP}${options}"
 echo
-echo "$text" | sed "s${SEP}${match}${SEP}${GREEN}${replace}${NORM}${SEP}g${options}" | grep -e '$'
+echo "$text" | sed "s${SEP}${match}${SEP}${GREEN}${replace}${NORM}${SEP}${options}" | grep -e '$'
 echo
 read -s -n 1 -p "next"
 clear

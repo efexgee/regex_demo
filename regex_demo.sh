@@ -359,32 +359,7 @@ function process_input () {
 }
 
 function replacement () {
-    input_replacement
-}
-
-function input_replacement () {
-    # since we're using 'echo' to "return" values from the
-    # function we can't print to STDOUT during the input
-    exec 3>&1 1>&2  # "save" STDOUT to FD3, redirect to STDERR
-
-    local grep_args=''
-    local grep_spacer=''
-
-    #TODO ask for arguments after the regex
-    # get flags for the grep command
-    # -e allows us to handle things like backspaces
-    read -e -p "Enter sed arguments: $YELLOW" grep_args
-    # turn off colors without printing a newline
-    echo -n $NORM
-
-    if [[ -n $grep_args ]]; then
-        # clean up args
-        grep_args="$(echo $grep_args | sed 's/  */ /g; s/^ *//; s/ *$//')"
-        # add a spacer between the flag and the /regex/
-        grep_spacer=" "
-    fi
-
-    echo
+    local sed_args=''
 
     # get the regex
     hide_cursor
@@ -398,7 +373,7 @@ function input_replacement () {
         # of the prompt but since the cursor is invisible
         # it looks like we're editing the prompt area
         #TODO This doesn't seem to actually happen: use '-s' on read, but breaks terminal if ctrl-c'd
-        read -srn 1 -p "Enter regex: sed ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${regex}${NORM}/" input
+        read -srn 1 -p "Enter regex: sed /${RED}${regex}${NORM}/" input
 
         case $input in
             "")
@@ -420,12 +395,12 @@ function input_replacement () {
     reset_line
 
     local find="$regex"
-    local regex=""
+    regex=""
 
     # use 'read' in a loop to fake custom editor behavior
     local input
     while true; do
-        read -srn 1 -p "Enter regex: sed ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${find}${NORM}/${GREEN}${regex}${NORM}/" input
+        read -srn 1 -p "Enter regex: sed /${RED}${find}${NORM}/${GREEN}${regex}${NORM}/" input
 
         case $input in
             "")
@@ -447,12 +422,12 @@ function input_replacement () {
     reset_line
 
     local repl="$regex"
-    local regex=""
+    regex=""
 
     # use 'read' in a loop to fake custom editor behavior
     local input
     while true; do
-        read -srn 1 -p "Enter regex: sed ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${find}${NORM}/${GREEN}${repl}${NORM}/${YELLOW}${regex}${NORM}" input
+        read -srn 1 -p "Enter regex: sed /${RED}${find}${NORM}/${GREEN}${repl}${NORM}/${YELLOW}${regex}${NORM}" input
 
         case $input in
             "")
@@ -471,19 +446,21 @@ function input_replacement () {
         reset_line
     done
 
-
+    sed_args="$regex"
 
     show_cursor
 
-    exec 1>&3   # restore STDOUT
+    echo
 
-    if [[ -n $grep_args ]]; then
-        echo "${grep_args}${REGEX_SEP}${regex}"
-    else
-        echo "$regex"
-    fi
+    SEP=$'\a'
+    echo "/${find}/${repl}/${sed_args}"
+    echo
+    echo "$text" | sed "s${SEP}${find}${SEP}${RED}&${NORM}${SEP}${sed_args}" | grep -n -e '$'
+    echo
+    echo "$text" | sed "s${SEP}${find}${SEP}${GREEN}${repl}${NORM}${SEP}${sed_args}" | grep -n -e '$'
+    echo
+    read -s -n 1 -p "next"
 }
-
 
 function input_regex () {
     # since we're using 'echo' to "return" values from the
