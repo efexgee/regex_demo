@@ -1,5 +1,5 @@
-basics
-Basic introduction to regex features
+Presentation 03: Classes
+Brackets and carets inside brackets
 
 Colorless green ideas sleep furiously.
 colorless green ideas sleep furiously.
@@ -11,14 +11,13 @@ Colorless green Ideas sleep furiously.
 Colorless green ideas sleep ferociously.
 Colorless green ideas rest ferociously.
 
-Color
-s s
-. .
-g.*f
-^C
-.$
- [is[
-[A-Zaeiou]
-[^sS]
-(lo|ee|oc)
-([a-z][A-Z])\1
+[Cc]olor
+[aeiou]
+ideas
+[iI]de[ae]s
+[A-Z]
+[^aouie]
+[^ ]
+[^.]$
+ [^ ]*$
+g[^ ]*

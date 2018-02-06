@@ -64,7 +64,7 @@ oIFS=$IFS   # backup the input field separator
 DEMO_FILE_SUFFIX=".regex_demo.json"
 
 # default file to use as the input text if no filename is provided
-DEFAULT_INFILE="original${DEMO_FILE_SUFFIX}"
+DEFAULT_INFILE="pres_01${DEMO_FILE_SUFFIX}"
 
 # backspace key
 BACKSPACE=`tput kbs`
@@ -296,7 +296,7 @@ function grep_it () {
 
     # wait for user with a prompt
     hide_cursor
-    read -s -n 1 -p "${BLACK}Hit <enter> to see the regex applied${NORM}" input
+    read -s -n 1 -p "${BLACK}Hit <enter> to grep${NORM}" input
     # delete the prompt before printing the results
     reset_line
     show_cursor

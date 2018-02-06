@@ -13,6 +13,8 @@ outfile=${infile/txt/json}
 oIFS=$IFS
 
 shopt -s expand_aliases
+# turn off glob expansion so to_json won't interpret *
+set -f
 
 # make jshon read from /dev/null so it doesn't break 'read'
 # by closing the file descriptor; also suppress errors
@@ -75,7 +77,7 @@ echo '{'
     echo -n "$(to_json $line)"
 
     while read line; do
-        if [ -z $line ]; then
+        if [[ -z $line ]]; then
             break
         else
             echo ","
@@ -91,3 +93,4 @@ echo '}'
 # end JSON output
 
 IFS=$oIFS
+set +f

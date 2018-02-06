@@ -1,0 +1,26 @@
+Presentation 01: Anchors
+Caret, dollar, word boundaries, and lookahead
+
+Colorless green ideas sleep furiously.
+colorless green ideas sleep furiously.
+Colorless green ideas sleep furiously
+Colorless green idees sleep furiously.
+Color less green ideas sleep furiously.
+Colorless green ideas sleep furious.
+Colorless green Ideas sleep furiously.
+Colorless green ideas sleep ferociously.
+Colorless green ideas rest ferociously.
+
+^.
+.$
+\.$
+s
+\<s
+s 
+s\>
+y.
+y\>
+l
+-P~l(?=e)
+-P~green(?!.*y)
+\<s\>
