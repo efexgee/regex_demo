@@ -1,0 +1,22 @@
+Presentation 04: Quantifiers
+Plus, braces, and question mark
+
+Colorless green ideas sleep furiously.
+colorless green ideas sleep furiously.
+Colorless green ideas sleep furiously
+Colorless green idees sleep furiously.
+Color less green ideas sleep furiously.
+Colorless green ideas sleep furious.
+Colorless green Ideas sleep furiously.
+Colorless green ideas sleep ferociously.
+Colorless green ideas rest ferociously.
+
+s g*r
+s g+r
+[aeiou]{2}
+[aeiou]{2,10}
+[^aeiou]{3,}
+ [a-z]{,5} 
+Color ?less
+\.?$
+y\.?$

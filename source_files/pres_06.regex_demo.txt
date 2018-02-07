@@ -1,0 +1,20 @@
+Presentation 06: Pitfalls
+Common pitfalls
+
+Failed job killed.
+AA
+ABBA
+AB,CD,EF,
+.56.113
+$56,113
+inj_____
+occ_mold_results
+ajsmith.testicular_cancer
+
+fail
+AB*A
+^.*,$
+.56.113
+inj_*
+old_results
+jsmith.test.*.cancer
