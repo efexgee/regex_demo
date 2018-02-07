@@ -15,7 +15,8 @@ s g*r
 s g+r
 [aeiou]{2}
 [aeiou]{2,10}
-[^aeiou]{4,}
+[^aeiou]{3,}
  [a-z]{,5} 
 Color ?less
 \.?$
+y\.?$

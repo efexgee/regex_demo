@@ -13,7 +13,7 @@ Colorless green ideas rest ferociously.
 
 (green)
 ideas (sleep)?
-ideas (sleep|rest) furious
+ideas (sleep|rest) f.*
 (.)\1
 ((.)\2).*\1
 -i~color
