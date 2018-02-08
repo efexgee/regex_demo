@@ -13,7 +13,7 @@ ajsmith.testicular_cancer
 
 fail
 AB*A
-^.*,$
+^.*,
 .56.113
 inj_*
 old_results

@@ -537,7 +537,7 @@ function demo_menu () {
 
     local PS3=$'\n'"Choose a regex demo `hi c`ontinue `hi q`uit: "
 
-    # disable file globbing so '*' doesn't get expanded
+    # enable file globbing to get the list of input files
     set +f
 
     for demo_file in $(\ls *${DEMO_FILE_SUFFIX}); do
@@ -548,6 +548,9 @@ function demo_menu () {
         demo_descr=$(jq '.description' $demo_file)
         demos[$i]="${BLUE}$demo_title${NORM}: $demo_descr"
     done
+
+    # re-disable file globbing
+    set -f
 
     local choices=`seq -s '|' 1 ${#demos[*]}`
 
@@ -562,11 +565,6 @@ function demo_menu () {
             *) echo "Not a valid choice: $REPLY"
         esac
     done
-
-    # re-enable file globbing
-    set -f
-
-    clear
 }
 
 function regex_menu () {
