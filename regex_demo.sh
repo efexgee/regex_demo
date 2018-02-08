@@ -141,8 +141,6 @@ function prep_pretty () {
 
 function load_demo () {
     # load text and regexes from a json file
-    #TODO this will break on tab characters
-
     local infile=$1
 
     local IFS=$'\n'
@@ -254,13 +252,14 @@ function set_term_width () {
 
 function hi () {
     # highlight the shortcut key on a menu option
-    # used inline: echo "press `hi d`one"
-    #TODO accept whole word and highlight first letter?
+    # used inline: echo "press `hi done`"
+    local word=$1
+
     local output+="("
-    local output+=$BLUE
-    local output+=$1
-    local output+=$NORM
-    local output+=")"
+    output+=$BLUE
+    output+=${word:0:1}
+    output+=$NORM
+    output+=")${word:1}"
 
     echo -n "$output"
 }
@@ -332,7 +331,7 @@ function grep_it () {
         esac
 
         echo
-        validating_prompt "`hi b`ack `hi j`ump `hi c`ustom `hi i`nteractive `hi l`oad file `hi q`uit | Next " "bjcilq" "enter"
+        validating_prompt "`hi back` `hi jump` `hi custom` `hi interactive` `hi load` file `hi quit` | Next " "bjcilq" "enter"
     fi
 }
 
@@ -420,8 +419,7 @@ function input_regex () {
         # technically, the user is typing to the right
         # of the prompt but since the cursor is invisible
         # it looks like we're editing the prompt area
-        #TODO use '-s' on read, but breaks terminal if ctrl-c'd
-        read -rn 1 -p "Enter regex: grep ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${regex}${NORM}/" input
+        read -srn 1 -p "Enter regex: grep ${YELLOW}$grep_args${NORM}$grep_spacer/${RED}${regex}${NORM}/" input
 
         case $input in
             "")
@@ -494,8 +492,7 @@ function interactive () {
 
         echo
 
-        #TODO use '-s' on read, but breaks terminal if ctrl-c'd
-        read -rn 1 -p "Enter regex: grep /${RED}${prompt}${NORM}/" input
+        read -srn 1 -p "Enter regex: grep /${RED}${prompt}${NORM}/" input
 
         case $input in
             "")
@@ -517,7 +514,6 @@ function interactive () {
 
     show_cursor
 
-    #TODO confirm quitting interactive mode?
     #TODO if we have a way to save customs, we should offer to save here
 }
 
@@ -535,7 +531,7 @@ function demo_menu () {
     local demo_title
     local demo_descr
 
-    local PS3=$'\n'"Choose a regex demo `hi c`ontinue `hi q`uit: "
+    local PS3=$'\n'"Choose a regex demo `hi continue` `hi quit`: "
 
     # enable file globbing to get the list of input files
     set +f
@@ -578,7 +574,7 @@ function regex_menu () {
     COLUMNS=$(set_term_width $regex_width)
 
     # 'select' uses PS3 as its prompt
-    local PS3=$'\n'"Choose regex `hi c`ontinue `hi q`uit: "
+    local PS3=$'\n'"Choose regex `hi continue` `hi quit`: "
 
     select choice in ${pretty_regexes[*]}; do
         case $REPLY in
@@ -629,5 +625,5 @@ while true; do
     echo "At the end of demo."
     echo
 
-    validating_prompt "`hi b`ack `hi j`ump `hi c`ustom `hi i`nteractive `hi l`oad file `hi q`uit" "bjcilq"
+    validating_prompt "`hi back` `hi jump` `hi custom` `hi interactive` `hi load` file `hi quit`" "bjcilq"
 done
