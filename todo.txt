@@ -1,3 +1,5 @@
+BUG: any key acts as enter
+
 accept j and i at next prompt?
 add custom regex to list?
 rename interactive to custom?
