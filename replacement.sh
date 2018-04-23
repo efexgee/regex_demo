@@ -1,20 +1,9 @@
 #!/bin/bash
-# Apply a series of greps to a file of text
-# to demonstrate regular expressions
-
-# GLOBALS
-
-# separator between grep args and the regex
-# ~ is a special character in VI's ex mode
-# but not in regex or grep
-REGEX_SEP='~'
 
 function quitting() {
     # also executes on ctrl-c
     # quits with status 0 because it was user-initiated
     echo -n $NORM  # restore default font
-    tabs -8     # restore default tab width
-    IFS=$oIFS   # restore IFS
     tput cnorm  # restore cursor
     exit 0
 }
@@ -36,28 +25,15 @@ shopt -s expand_aliases
 # -n print line numbers
 # -E use extended regular expressions (egrep)
 alias grep='grep --color=always -n -E'
-# for the demo output, add
-# -C100 print 100 lines of context
-alias demo_grep='grep -C100'
 # The '-C100', 'mc=', "bogus line", and '-e' in grep_it
 # appended to the sample text allow us to always show
 # unmatched lines in grey, even if no lines matched.
 export GREP_COLORS='ms=04;31:mc=01;04;31:sl=:cx=01;30:fn=01;37:ln=32:bn=35:se=36'
-GREP_BOGUS_LINE='#!~;;~!#'
-
-alias jq='jq -r'
 
 # cursor manipulations
 alias hide_cursor='tput civis'
 alias show_cursor='tput cnorm'
 alias reset_line='tput dl1; tput hpa 0'
-
-# set our tab width
-TAB=1   # also used in tab-related functions
-tabs -${TAB}
-
-# set up the regular expressions
-oIFS=$IFS   # backup the input field separator
 
 # backspace key
 BACKSPACE=`tput kbs`
@@ -84,7 +60,6 @@ function replacement () {
         # technically, the user is typing to the right
         # of the prompt but since the cursor is invisible
         # it looks like we're editing the prompt area
-        #TODO This doesn't seem to actually happen: use '-s' on read, but breaks terminal if ctrl-c'd
         read -srn 1 -p "Enter regex: sed /${RED}${regex}${NORM}/" input
 
         case $input in
@@ -108,6 +83,8 @@ function replacement () {
 
     local find="$regex"
     regex=""
+
+    echo "find=|$find|"
 
     # use 'read' in a loop to fake custom editor behavior
     local input
@@ -136,6 +113,8 @@ function replacement () {
     local repl="$regex"
     regex=""
 
+    echo "repl=|$repl|"
+
     # use 'read' in a loop to fake custom editor behavior
     local input
     while true; do
@@ -160,32 +139,31 @@ function replacement () {
 
     sed_args="$regex"
 
+    reset_line
+    echo "repl=|$sed_args|"
+
     show_cursor
 
     echo
 
     SEP=$'\a'
+    SEP='#'
 
     echo
-    echo "$text" | sed "s${SEP}${find}${SEP}${RED}&${NORM}${SEP}${sed_args}" | grep -n -e '$'
+    echo `alias sed | cut -d= -f2` "s${SEP}${find}${SEP}${RED}&${NORM}${SEP}${sed_args}"
+    echo "$text" | sed "s${SEP}${find}${SEP}${RED}&${NORM}${SEP}${sed_args}" | grep -e '$'
     echo
-    echo "$text" | sed "s${SEP}${find}${SEP}${GREEN}${repl}${NORM}${SEP}${sed_args}" | grep -n -e '$'
+    echo  `alias sed | cut -d= -f2` "s${SEP}${find}${SEP}${GREEN}${repl}${NORM}${SEP}${sed_args}"
+    echo "$text" | sed "s${SEP}${find}${SEP}${GREEN}${repl}${NORM}${SEP}${sed_args}" | grep -e '$'
     echo
     read -s -n 1 -p "${BLACK}Again${NORM}"
 }
 
+########
+
 alias sed='sed -r'
 
 text=$(cat text)
-
-
-RED=`tput setaf 1`
-GREEN=`tput setaf 2`
-NORM=`tput sgr0`
-
-oIFS=$IFS
-
-IFS=''
 
 while true; do
     clear
